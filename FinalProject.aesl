@@ -9,8 +9,9 @@
 <constant value="800" name="THRESHOLD"/>
 <constant value="200" name="TARGET"/>
 <constant value="460" name="TIMER0"/>
-<constant value="0" name="FIRSTBARCODE"/>
-<constant value="1" name="SECONDBARCODE"/>
+<constant value="0" name="FIRST_BARCODE"/>
+<constant value="1" name="SECOND_BARCODE"/>
+<constant value="2" name="BEFORE_FOLLOW_LINE"/>
 
 
 <!--show keywords state-->
@@ -21,11 +22,19 @@
 <node nodeId="1" name="thymio-II"># 1 for white, 0 for black
 var barcode[] = [0, 0, 0]
 var firstBarcode[3] = [0, 0, 0]
-var state = FIRSTBARCODE
+var state = FIRST_BARCODE
 # 0: left 1: right
-var firstBarcodeDirection = 0
+var firstBarcodeDirection = -1
 # 0: left 1: right
-var secondBarcodeDirection = 0
+var secondBarcodeDirection = -1
+var leftTurnOrder[] = [1, 1, 0]     # right, right, left
+var rightTurnOrder[] = [0, 0, 1]    # left, left, right
+var nextTurnOrder[] = [-1, -1, -1]
+var nextTurnDirection = -1
+
+var max                             # max over all sensor readings
+var mean                            # average over all sensor readings
+var min
 
 var turnCount = 0
 
@@ -38,25 +47,52 @@ onevent prox
 
 	callsub read_barcode
 	callsub first_barcode_turn
-	if state == SECONDBARCODE then
-		callsub read_barcode
-		callsub second_barcode_turn
+#	if state == SECOND_BARCODE then
+#		callsub read_barcode
+#		callsub read_second_barcode
+#		
+#	end
+	if state == BEFORE_FOLLOW_LINE then
+		callsub second_turn
 	end
 	
-sub second_barcode_turn
+sub second_turn
+	# compute min, max, and mean over the current sensor readings 
+   call math.stat( prox.horizontal[0:4], min, max, mean )
+   if max > THRESHOLD and turnCount &lt;= 3 then
+   	nextTurnDirection = nextTurnOrder[turnCount - 1]
+   	callsub next_turn
+   end
+   
+sub next_turn
+	if nextTurnDirection == 0 then
+		motor.left.target = -TARGET * 2
+		motor.right.target = TARGET * 2
+		timer.period[0] = TIMER0
+	elseif nextTurnDirection == 1 then
+		motor.left.target = TARGET * 2
+		motor.right.target = -TARGET * 2
+		timer.period[0] = TIMER0	
+	end
+
+	
+sub read_second_barcode
 	if barcode[0] == 1 and barcode[1] == 0 and barcode[2] == 0 then # left
 		secondBarcodeDirection = 0
+		state = BEFORE_FOLLOW_LINE
 	end
 	
 	if barcode[0] == 0 and barcode[1] == 0 and barcode[2] == 1 then # right
 		secondBarcodeDirection = 1
+		state = BEFORE_FOLLOW_LINE
 	end
 
 onevent timer0
 	motor.left.target = TARGET
 	motor.right.target = TARGET
-	state = SECONDBARCODE
+	state = BEFORE_FOLLOW_LINE
 	turnCount++
+	barcode = [0, 0, 0]
 	timer.period[0] = 0
 	
 	
@@ -90,6 +126,7 @@ sub first_barcode_turn
 		motor.left.target = -TARGET * 2
 		motor.right.target = TARGET * 2
 		firstBarcodeDirection = 0
+		nextTurnOrder = leftTurnOrder
 		timer.period[0] = TIMER0
 	end
 	
@@ -97,6 +134,7 @@ sub first_barcode_turn
 		motor.left.target = TARGET * 2
 		motor.right.target = -TARGET * 2
 		firstBarcodeDirection = 1
+		nextTurnOrder = rightTurnOrder
 		timer.period[0] = TIMER0
 	end</node>
 
