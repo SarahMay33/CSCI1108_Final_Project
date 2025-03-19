@@ -47,11 +47,11 @@ onevent prox
 
 	callsub read_barcode
 	callsub first_barcode_turn
-#	if state == SECOND_BARCODE then
-#		callsub read_barcode
-#		callsub read_second_barcode
-#		
-#	end
+	if state == SECOND_BARCODE then
+		callsub read_barcode
+		callsub read_second_barcode
+		
+	end
 	if state == BEFORE_FOLLOW_LINE then
 		callsub second_turn
 	end
@@ -59,7 +59,7 @@ onevent prox
 sub second_turn
 	# compute min, max, and mean over the current sensor readings 
    call math.stat( prox.horizontal[0:4], min, max, mean )
-   if max > THRESHOLD and turnCount &lt;= 3 then
+   if min > THRESHOLD and turnCount &lt;= 3 then
    	nextTurnDirection = nextTurnOrder[turnCount - 1]
    	callsub next_turn
    end
