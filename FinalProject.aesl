@@ -6,10 +6,99 @@
 
 
 <!--list of constants-->
+<constant value="800" name="THRESHOLD"/>
+<constant value="200" name="TARGET"/>
+<constant value="460" name="TIMER0"/>
+<constant value="0" name="FIRSTBARCODE"/>
+<constant value="1" name="SECONDBARCODE"/>
 
 
 <!--show keywords state-->
 <keywords flag="true"/>
+
+
+<!--node thymio-II-->
+<node nodeId="1" name="thymio-II"># 1 for white, 0 for black
+var barcode[] = [0, 0, 0]
+var firstBarcode[3] = [0, 0, 0]
+var state = FIRSTBARCODE
+# 0: left 1: right
+var firstBarcodeDirection = 0
+# 0: left 1: right
+var secondBarcodeDirection = 0
+
+var turnCount = 0
+
+
+onevent button.forward
+	motor.left.target = TARGET
+	motor.right.target = TARGET
+
+onevent prox
+
+	callsub read_barcode
+	callsub first_barcode_turn
+	if state == SECONDBARCODE then
+		callsub read_barcode
+		callsub second_barcode_turn
+	end
+	
+sub second_barcode_turn
+	if barcode[0] == 1 and barcode[1] == 0 and barcode[2] == 0 then # left
+		secondBarcodeDirection = 0
+	end
+	
+	if barcode[0] == 0 and barcode[1] == 0 and barcode[2] == 1 then # right
+		secondBarcodeDirection = 1
+	end
+
+onevent timer0
+	motor.left.target = TARGET
+	motor.right.target = TARGET
+	state = SECONDBARCODE
+	turnCount++
+	timer.period[0] = 0
+	
+	
+sub read_barcode
+	if motor.left.speed &lt; 0 or motor.right.speed &lt; 0 then
+		return
+	end
+	if  prox.horizontal[1] > THRESHOLD then
+		barcode[0] = 1
+	else
+		barcode[0] = 0
+	end
+
+	if  prox.horizontal[2] > THRESHOLD then
+		barcode[1] = 1
+	else
+		barcode[1] = 0
+	end
+
+	if  prox.horizontal[3] > THRESHOLD then
+		barcode[2] = 1
+	else
+		barcode[2] = 0
+	end
+
+	call leds.circle(barcode[0] * 32, barcode[1] * 32, barcode[2] * 32, 0, 0, 0, 0, 0)
+	
+	
+sub first_barcode_turn
+	if barcode[0] == 1 and barcode[1] == 0 and barcode[2] == 0 then # left
+		motor.left.target = -TARGET * 2
+		motor.right.target = TARGET * 2
+		firstBarcodeDirection = 0
+		timer.period[0] = TIMER0
+	end
+	
+	if barcode[0] == 0 and barcode[1] == 0 and barcode[2] == 1 then # right
+		motor.left.target = TARGET * 2
+		motor.right.target = -TARGET * 2
+		firstBarcodeDirection = 1
+		timer.period[0] = TIMER0
+	end</node>
 
 
 </network>
