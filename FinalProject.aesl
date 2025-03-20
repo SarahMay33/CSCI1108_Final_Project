@@ -42,6 +42,10 @@ var turnCount = 0
 onevent button.forward
 	motor.left.target = TARGET
 	motor.right.target = TARGET
+	
+onevent button.backward
+	motor.left.target = 0
+	motor.right.target = 0
 
 onevent prox
 
@@ -59,7 +63,7 @@ onevent prox
 sub second_turn
 	# compute min, max, and mean over the current sensor readings 
    call math.stat( prox.horizontal[0:4], min, max, mean )
-   if min > THRESHOLD and turnCount &lt;= 3 then
+   if mean > THRESHOLD and turnCount &lt;= 3 then
    	nextTurnDirection = nextTurnOrder[turnCount - 1]
    	callsub next_turn
    end
