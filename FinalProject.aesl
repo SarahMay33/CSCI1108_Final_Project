@@ -6,13 +6,17 @@
 
 
 <!--list of constants-->
-<constant value="800" name="THRESHOLD"/>
+<constant value="1000" name="THRESHOLD"/>
 <constant value="200" name="TARGET"/>
-<constant value="540" name="TIMER0"/>
+<constant value="460" name="TIMER0"/>
 <constant value="0" name="FIRST_BARCODE"/>
 <constant value="1" name="SECOND_BARCODE"/>
 <constant value="2" name="BEFORE_FOLLOW_LINE"/>
+<constant value="3" name="TAPE_LEFT"/>
+<constant value="4" name="TAPE_RIGHT"/>
 <constant value="-1" name="STOPPED"/>
+<constant value="300" name="EDGE"/>
+<constant value="400" name="TAPE_TARGET"/>
 
 
 <!--show keywords state-->
@@ -25,6 +29,8 @@ var barcode[] = [0, 0, 0]				# 1 for white, 0 for black
 var firstBarcode[3] = [0, 0, 0]
 var state = STOPPED
 
+var turnSatate = -1
+
 var firstBarcodeDirection = -1		# 0: left 1: right
 
 var secondBarcodeDirection = -1		# 0: left 1: right
@@ -32,6 +38,8 @@ var leftTurnOrder[] = [1, 1, 0]     # right, right, left
 var rightTurnOrder[] = [0, 0, 1]    # left, left, right
 var nextTurnOrder[] = [-1, -1, -1]
 var nextTurnDirection = -1
+var followLineStarted = 0
+var followLineEnded = 0
 
 var max                             # max over all sensor readings
 var mean                            # average over all sensor readings
@@ -56,29 +64,35 @@ onevent prox
 	end
 	callsub read_barcode
 	callsub first_barcode_turn
+	if state == FIRST_BARCODE then
+#		callsub follow_line_barcode
+	end
 	if state == SECOND_BARCODE then
 		callsub read_barcode
 		callsub read_second_barcode
+#		callsub follow_line_barcode
 		
 	end
 	if state == BEFORE_FOLLOW_LINE then
 		callsub second_turn
+#		callsub follow_line_barcode
 	end
+	
 	
 sub second_turn
 	# compute min, max, and mean over the current sensor readings 
    call math.stat( prox.horizontal[0:4], min, max, mean )
-   if mean > THRESHOLD * 3 and turnCount &lt;= 3 then
+   if mean > THRESHOLD and turnCount &lt;= 3 then
    	nextTurnDirection = nextTurnOrder[turnCount - 1]
    	callsub next_turn
    end
    
 sub next_turn
-	if nextTurnDirection == 0 then
+	if nextTurnDirection == 0 then # turn left
 		motor.left.target = -TARGET * 2
 		motor.right.target = TARGET * 2
 		timer.period[0] = TIMER0
-	elseif nextTurnDirection == 1 then
+	elseif nextTurnDirection == 1 then # turn right
 		motor.left.target = TARGET * 2
 		motor.right.target = -TARGET * 2
 		timer.period[0] = TIMER0	
@@ -96,6 +110,42 @@ sub read_second_barcode
 		state = BEFORE_FOLLOW_LINE
 	end
 
+# follow line to read barcode, diable this after the third barcode
+sub follow_line_barcode
+	if turnCount > 3 then
+		return
+	end
+	if  followLineEnded == 1 then
+		return
+	end
+	
+	if prox.ground.delta[0] &lt; EDGE then
+		turnSatate = TAPE_RIGHT                          #  transition to RIGHT state
+      motor.left.target = TAPE_TARGET             #  move right
+      motor.right.target = 0
+      if followLineStarted == 0 then
+      	timer.period[1] = 1000
+      	followLineStarted = 1
+      	followLineEnded = 0
+      end
+	end
+	if turnSatate == TAPE_LEFT and  prox.ground.delta[0] >= EDGE then
+      turnSatate = TAPE_RIGHT                          #  transition to RIGHT state
+      motor.left.target = TAPE_TARGET             #  move right
+      motor.right.target = 0
+
+    end
+    
+    # if moving right and sensing black line
+    if (turnSatate == TAPE_RIGHT) and prox.ground.delta[0] &lt; EDGE then
+      turnSatate = TAPE_LEFT                           #  transition to LEFT state
+      motor.left.target = 0                  #  move left
+      motor.right.target = TAPE_TARGET
+
+    end
+
+
+
 onevent timer0
 	motor.left.target = TARGET
 	motor.right.target = TARGET
@@ -103,6 +153,14 @@ onevent timer0
 	turnCount++
 	barcode = [0, 0, 0]
 	timer.period[0] = 0
+	
+onevent timer1
+	 turnSatate = -1
+	 followLineEnded = 1
+	 followLineStarted = 0                       
+    motor.left.target = TAPE_TARGET
+    motor.right.target = TAPE_TARGET
+    timer.period[0] = 0
 	
 	
 sub read_barcode
@@ -133,11 +191,19 @@ sub read_barcode
 	else
 		barcode[2] = 0
 	end
-
+	if barcode[0] == 0 and barcode[1] == 0 and  barcode[2] == 0 then
+		return
+	end
+#	if turnCount == 0 then
+#		state = FIRST_BARCODE
+#	end
+#	if turnCount > 0 and turnCount &lt;= 3 then
+#		state = SECOND_BARCODE
+#	end
 	call leds.circle(barcode[0] * 32, barcode[1] * 32, barcode[2] * 32, 0, 0, 0, 0, 0)
 	
 	
-sub first_barcode_turn
+sub first_barcode_turn  # turn after the first barcode
 	if barcode[0] == 1 and barcode[1] == 0 and barcode[2] == 0 then # left
 		motor.left.target = -TARGET * 2
 		motor.right.target = TARGET * 2
