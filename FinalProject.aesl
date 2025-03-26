@@ -47,8 +47,24 @@ onevent button.backward             # if backward button is pressed
   
   
  onevent prox                        # check proximity sensors
-  if state != STOPPED then          # only if we are not STOPPED
-    # compute min, max, and mean over the current sensor readings 
+  	if state != STOPPED then          # only if we are not STOPPED
+  		callsub follow_line
+  		callsub read_barcode
+  	end
+   
+ onevent tap
+  	callsub stop
+  
+ sub stop
+ 	motor.left.target = BACKWARD_TARGET             # stop motors
+  	motor.right.target = BACKWARD_TARGET
+  	isTuring = TURN_START
+  	timer.period[0] = BACKWARD_TIMER
+  	
+
+ 
+ sub follow_line
+ # compute min, max, and mean over the current sensor readings 
     call math.stat( prox.horizontal[0:4], min, max, mean )
     
     if prox.ground.delta[0] &lt; EDGE then
@@ -71,40 +87,27 @@ onevent button.backward             # if backward button is pressed
       call leds.circle(32,32,0,0,0,0,0,0)
        
     end
-   end
    
- onevent tap
-  	callsub stop
-  
- sub stop
- 	motor.left.target = BACKWARD_TARGET             # stop motors
-  	motor.right.target = BACKWARD_TARGET
-  	isTuring = TURN_START
-  	timer.period[0] = BACKWARD_TIMER
-  	
- onevent timer0
- if isTuring == TURN_START then
-	 if  nextTurn == TURN_DIRECTION_LEFT then
-	 	motor.left.target = -TARGET             
-	  	motor.right.target = TARGET
-	 end
-	 if nextTurn == TURN_DIRECTION_RIGHT then
-	 	motor.left.target = TARGET             
-	  	motor.right.target = -TARGET
-	 end
-	 isTuring = TURN_END
- elseif 	isTuring == TURN_END then
- 		motor.left.target = TARGET - 100             
-	  	motor.right.target = TARGET
-	  	timer.period[0] = 0
-	  	timer.period[1] = TIMER1
- end
- 
- sub follow_line
- 
  
  sub read_barcode
  
+ onevent timer0
+	 if isTuring == TURN_START then
+		 if  nextTurn == TURN_DIRECTION_LEFT then
+		 	motor.left.target = -TARGET             
+		  	motor.right.target = TARGET
+		 end
+		 if nextTurn == TURN_DIRECTION_RIGHT then
+		 	motor.left.target = TARGET             
+		  	motor.right.target = -TARGET
+		 end
+		 isTuring = TURN_END
+	 elseif 	isTuring == TURN_END then
+	 	motor.left.target = TARGET - 100             
+		motor.right.target = TARGET
+		timer.period[0] = 0
+		timer.period[1] = TIMER1
+	 end
  
  onevent timer1
  	motor.left.target = motor.right.target             
