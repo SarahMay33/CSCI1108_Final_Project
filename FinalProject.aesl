@@ -12,13 +12,15 @@
 <constant value="300" name="TARGET"/>
 <constant value="300" name="EDGE"/>
 <constant value="300" name="TAPE_TARGET"/>
-<constant value="400" name="BACKWARD_TIMER"/>
+<constant value="500" name="BACKWARD_TIMER"/>
 <constant value="-200" name="BACKWARD_TARGET"/>
 <constant value="0" name="TURN_DIRECTION_LEFT"/>
 <constant value="1" name="TURN_DIRECTION_RIGHT"/>
 <constant value="1" name="TURN_START"/>
 <constant value="0" name="TURN_END"/>
-<constant value="460" name="TIMER1"/>
+<constant value="500" name="TIMER1"/>
+<constant value="450" name="TURN_TARGET"/>
+<constant value="2000" name="THRESHOLD"/>
 
 
 <!--show keywords state-->
@@ -55,7 +57,7 @@ onevent button.backward             # if backward button is pressed
   	if state != STOPPED then          # only if we are not STOPPED
   		callsub follow_line
   		callsub read_barcode
-  		callsub determine_first_group_turn
+  		
   	end
    
  onevent tap
@@ -65,6 +67,7 @@ onevent button.backward             # if backward button is pressed
  	motor.left.target = BACKWARD_TARGET             # stop motors
   	motor.right.target = BACKWARD_TARGET
   	isTuring = TURN_START
+  	turnCount++
   	timer.period[0] = BACKWARD_TIMER
   	
 
@@ -73,6 +76,9 @@ onevent button.backward             # if backward button is pressed
  # compute min, max, and mean over the current sensor readings 
  	if isTuring == TURN_START then
  		state = TAPE_RIGHT
+ 		return
+ 	end
+ 	if timer.period[0] > 0 then
  		return
  	end
    call math.stat( prox.horizontal[0:4], min, max, mean )
@@ -84,7 +90,7 @@ onevent button.backward             # if backward button is pressed
    if state == TAPE_LEFT and  prox.ground.delta[0] >= EDGE then
       state = TAPE_RIGHT                          #  transition to RIGHT state
       motor.left.target = TAPE_TARGET             #  move right
-      motor.right.target = TAPE_TARGET - 100
+      motor.right.target = 0
       
       
    end
@@ -92,7 +98,7 @@ onevent button.backward             # if backward button is pressed
     # if moving right and sensing black line
    if (state == TAPE_RIGHT) and prox.ground.delta[0] &lt; EDGE then
       state = TAPE_LEFT                           #  transition to LEFT state
-      motor.left.target = TAPE_TARGET - 100                  #  move left
+      motor.left.target = 0                  #  move left
       motor.right.target = TAPE_TARGET
       
        
@@ -100,23 +106,25 @@ onevent button.backward             # if backward button is pressed
    
  
  sub read_barcode
- 	if prox.horizontal[1] >= EDGE then
+ 	if prox.horizontal[1] >= THRESHOLD then
  		barcodeRead[0] = 1
- 	elseif  prox.horizontal[1] &lt; EDGE then
+ 	elseif  prox.horizontal[1] &lt; THRESHOLD then
  		barcodeRead[0] = 0
  	end
- 	if prox.horizontal[2] >= EDGE then
+ 	if prox.horizontal[2] >= THRESHOLD then
  		barcodeRead[1] = 1
- 	elseif  prox.horizontal[2] &lt; EDGE then
+ 	elseif  prox.horizontal[2] &lt; THRESHOLD then
  		barcodeRead[1] = 0
  	end
- 	if prox.horizontal[3] >= EDGE then
+ 	if prox.horizontal[3] >= THRESHOLD then
  		barcodeRead[2] = 1
- 	elseif  prox.horizontal[3] &lt; EDGE then
+ 	elseif  prox.horizontal[3] &lt; THRESHOLD then
  		barcodeRead[2] = 0
  	end
- 	if firstBarcode[0] == -1 and firstBarcode[1] == -1 and firstBarcode[2] == -1 then
+ 	if (firstBarcode[0] == -1 and firstBarcode[1] == -1 and firstBarcode[2] == -1 )
+ 	or (firstBarcode[0] == 0 and firstBarcode[1] == 0 and firstBarcode[2] == 0) then
  		firstBarcode = barcodeRead
+ 		callsub determine_first_group_turn
  	end
  	if firstBarcode[0] != -1 and firstBarcode[1] != -1 and firstBarcode[2] != -1 then
  		secondBarcode = barcodeRead
@@ -125,6 +133,15 @@ onevent button.backward             # if backward button is pressed
  	barcodeRead = [-1, -1, -1]
  	
  sub determine_next_turn
+ # if the barcode is valid(left, right, or dead end)
+ 	if (barcodeRead[0] == 0 and barcodeRead[1] == 0 and barcodeRead[2] == 1)
+ 	or (barcodeRead[0] == 1 and barcodeRead[1] == 0 and barcodeRead[2] == 0) 
+ 	or (barcodeRead[0] == 1 and barcodeRead[1] == 1 and barcodeRead[2] == 0) then
+ 	 	
+ 	 	if turnCount > 0 and turnCount &lt;= 3 then
+ 	 		nextTurn = firstGroupDirection[turnCount - 1]
+ 	 	end
+ 	end
  	
  sub determine_first_group_turn
  	if firstBarcode[0] == 1 and firstBarcode[1] == 0 and firstBarcode[2] == 0 then
@@ -140,16 +157,16 @@ onevent button.backward             # if backward button is pressed
  onevent timer0
 	 if isTuring == TURN_START then
 		 if  nextTurn == TURN_DIRECTION_LEFT then
-		 	motor.left.target = -TARGET             
-		  	motor.right.target = TARGET
+		 	motor.left.target = -TURN_TARGET             
+		  	motor.right.target = TURN_TARGET
 		 end
 		 if nextTurn == TURN_DIRECTION_RIGHT then
-		 	motor.left.target = TARGET             
-		  	motor.right.target = -TARGET
+		 	motor.left.target = TURN_TARGET             
+		  	motor.right.target = -TURN_TARGET
 		 end
 		 isTuring = TURN_END
 	 elseif 	isTuring == TURN_END then
-	 	motor.left.target = 0             
+	 	motor.left.target = TARGET / 3             
 		motor.right.target = TARGET
 		timer.period[0] = 0
 		timer.period[1] = TIMER1
