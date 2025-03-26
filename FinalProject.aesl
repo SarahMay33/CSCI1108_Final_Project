@@ -6,10 +6,113 @@
 
 
 <!--list of constants-->
+<constant value="0" name="STOPPED"/>
+<constant value="1" name="TAPE_RIGHT"/>
+<constant value="2" name="TAPE_LEFT"/>
+<constant value="300" name="TARGET"/>
+<constant value="300" name="EDGE"/>
+<constant value="300" name="TAPE_TARGET"/>
+<constant value="500" name="BACKWARD_TIMER"/>
+<constant value="-150" name="BACKWARD_TARGET"/>
+<constant value="0" name="TURN_DIRECTION_LEFT"/>
+<constant value="1" name="TURN_DIRECTION_RIGHT"/>
+<constant value="1" name="TURN_START"/>
+<constant value="0" name="TURN_END"/>
+<constant value="500" name="TIMER1"/>
 
 
 <!--show keywords state-->
 <keywords flag="true"/>
+
+
+<!--node thymio-II-->
+<node nodeId="1" name="thymio-II">var state
+var max                             # max over all sensor readings
+var mean                            # average over all sensor readings
+var min
+var turnCount
+var nextTurn
+var isTuring
+
+onevent button.forward              # if forward button is pressed  
+  state = TAPE_RIGHT                   # transition to FORWARD state
+  motor.left.target = TARGET        # start moving forward
+  motor.right.target = TARGET
+  turnCount = 0
+	
+onevent button.backward             # if backward button is pressed
+  state = STOPPED                   # transition to STOPPED state
+  motor.left.target = 0             # stop motors
+  motor.right.target = 0
+  
+  
+ onevent prox                        # check proximity sensors
+  if state != STOPPED then          # only if we are not STOPPED
+    # compute min, max, and mean over the current sensor readings 
+    call math.stat( prox.horizontal[0:4], min, max, mean )
+    
+    if prox.ground.delta[0] &lt; EDGE then
+    	state = TAPE_LEFT
+    end
+    
+    if state == TAPE_LEFT and  prox.ground.delta[0] >= EDGE then
+      state = TAPE_RIGHT                          #  transition to RIGHT state
+      motor.left.target = TAPE_TARGET             #  move right
+      motor.right.target = TAPE_TARGET - 100
+      call leds.circle(32,0,0,0,0,0,0,0)
+      
+    end
+    
+    # if moving right and sensing black line
+    if (state == TAPE_RIGHT) and prox.ground.delta[0] &lt; EDGE then
+      state = TAPE_LEFT                           #  transition to LEFT state
+      motor.left.target = TAPE_TARGET - 100                  #  move left
+      motor.right.target = TAPE_TARGET
+      call leds.circle(32,32,0,0,0,0,0,0)
+       
+    end
+   end
+   
+ onevent tap
+  	callsub stop
+  
+ sub stop
+ 	motor.left.target = BACKWARD_TARGET             # stop motors
+  	motor.right.target = BACKWARD_TARGET
+  	isTuring = TURN_START
+  	timer.period[0] = BACKWARD_TIMER
+  	
+ onevent timer0
+ if isTuring == TURN_START then
+	 if  nextTurn == TURN_DIRECTION_LEFT then
+	 	motor.left.target = -TARGET             
+	  	motor.right.target = TARGET
+	 end
+	 if nextTurn == TURN_DIRECTION_RIGHT then
+	 	motor.left.target = TARGET             
+	  	motor.right.target = -TARGET
+	 end
+	 isTuring = TURN_END
+ elseif 	isTuring == TURN_END then
+ 		motor.left.target = TARGET - 100             
+	  	motor.right.target = TARGET
+	  	timer.period[0] = 0
+	  	timer.period[1] = TIMER1
+ end
+ 
+ sub follow_line
+ 
+ 
+ sub read_barcode
+ 
+ 
+ onevent timer1
+ 	motor.left.target = motor.right.target             
+	motor.right.target = motor.left.target
+ 	
+ 	
+  	
+  </node>
 
 
 </network>
