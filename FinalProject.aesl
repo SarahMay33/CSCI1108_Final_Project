@@ -22,6 +22,7 @@
 <constant value="12" name="BLACK"/>
 <constant value="-1" name="GRAY_TH"/>
 <constant value="16" name="GRAY"/>
+<constant value="5" name="BACKWARD"/>
 
 
 <!--show keywords state-->
@@ -61,6 +62,8 @@ onevent button.forward
 	motor.left.target = TARGET
 	motor.right.target = TARGET
 	state = FIRST_BARCODE
+	timer.period[0] = 0
+	timer.period[1] = 0
 	
 	
 onevent button.backward
@@ -97,7 +100,7 @@ sub stop
 	motor.left.target = -100
 	motor.right.target = -100
 	barcodeTurn = 1
-	timer.period[1] = 540
+	timer.period[1] = 800
 	
 	
 	
@@ -180,8 +183,7 @@ sub follow_line_barcode
 onevent timer0
 	motor.left.target = motor.right.target
 	motor.right.target = motor.left.target
-	turnCount++
-	barcode = [-1, -1, -1]
+	
 	
 onevent timer1
 	if state == FIRST_BARCODE and barcodeTurn == 1 then
@@ -202,6 +204,7 @@ onevent timer1
 		motor.right.target = TARGET
 		timer.period[1] = 0
 		timer.period[0] = 500
+#		turnCount++
 	end
 	if state == SECOND_BARCODE  and barcodeTurn == 1 then
 		if  nextTurnDirection == 0 then
@@ -220,6 +223,7 @@ onevent timer1
 		motor.right.target = TARGET
 		timer.period[1] = 0
 		timer.period[0] = 500
+#		turnCount++
 	end
 	
 	
@@ -274,9 +278,11 @@ sub read_barcode
 		if barcode[0] == 1 and barcode[1] == 0 and barcode[2] == 0 then
 			nextTurnDirection = 0
 			firstBarcodeDirection = 0
+			nextTurnOrder = leftTurnOrder
 		elseif barcode[0] == 0 and barcode[1] == 0 and barcode[2] == 1 then
 			nextTurnDirection = 1
 			firstBarcodeDirection = 1
+			nextTurnOrder = rightTurnOrder
 		end
 	end
 	
