@@ -28,7 +28,7 @@
 <constant value="2" name="BLACK"/>
 <constant value="1000" name="GRAY_TH"/>
 <constant value="3" name="GRAY"/>
-<constant value="1" name="TAPE_MAX_WIDTH"/>
+<constant value="7" name="TAPE_MAX_WIDTH"/>
 <constant value="400" name="MAX_TARGET"/>
 
 
@@ -57,9 +57,9 @@ var secondBarcodeRead = 0
 var width = 0    	 
 var tapeReading
 
-var lastTape = 1
+var lastTape = 0
 
-var isFollowLine = 1
+var isFollowLine = 0
 
 onevent button.forward              # if forward button is pressed  
   state = TAPE_RIGHT                   # transition to FORWARD state
@@ -78,7 +78,10 @@ onevent button.backward             # if backward button is pressed
   	if state != STOPPED then          # only if we are not STOPPED
   		callsub follow_line
 #  		callsub read_barcode
-#		callsub read_tape
+if width &lt;= TAPE_MAX_WIDTH then
+	callsub read_tape
+end
+		
   		
   	end
    
@@ -128,14 +131,14 @@ tapeReading = (prox.ground.delta[0] + prox.ground.delta[1]) / 2
 	 		motor.right.target = -TARGET
 	 		isTuring = TURN_END
 	 		lastTape = 1
-	 		timer.period[0] = TIMER_TURN - 50
+	 		timer.period[0] = TIMER_TURN - 100
 	 		
 	 	elseif secondBarcode[0] == 1 and secondBarcode[1] == 0 and secondBarcode[2] == 0 then # left
 	 		motor.left.target = -TARGET
 	 		motor.right.target = TARGET
 	 		isTuring = TURN_END
 	 		lastTape = 1
-	 		timer.period[0] = TIMER_TURN - 50
+	 		timer.period[0] = TIMER_TURN - 100
 	 		
 	 		
 	 	end
@@ -170,7 +173,7 @@ tapeReading = (prox.ground.delta[0] + prox.ground.delta[1]) / 2
    if state == TAPE_LEFT and  prox.ground.delta[0] >= EDGE then
       state = TAPE_RIGHT                          #  transition to RIGHT state
       motor.left.target = TAPE_TARGET             #  move right
-      motor.right.target = 0
+      motor.right.target = TAPE_TARGET - 150
       tapeCount++
       
       
@@ -179,7 +182,7 @@ tapeReading = (prox.ground.delta[0] + prox.ground.delta[1]) / 2
     # if moving right and sensing black line
    if (state == TAPE_RIGHT) and prox.ground.delta[0] &lt; EDGE then
       state = TAPE_LEFT                           #  transition to LEFT state
-      motor.left.target = 0                  #  move left
+      motor.left.target = TAPE_TARGET - 150                  #  move left
       motor.right.target = TAPE_TARGET
       tapeCount++
        
