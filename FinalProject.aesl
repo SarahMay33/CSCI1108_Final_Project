@@ -22,13 +22,14 @@
 <constant value="500" name="TIMER1"/>
 <constant value="350" name="TURN_TARGET"/>
 <constant value="1500" name="THRESHOLD"/>
-<constant value="450" name="TIMER_TURN"/>
+<constant value="400" name="TIMER_TURN"/>
 <constant value="5" name="SEARCH"/>
 <constant value="300" name="BLACK_TH"/>
 <constant value="2" name="BLACK"/>
 <constant value="1000" name="GRAY_TH"/>
 <constant value="3" name="GRAY"/>
-<constant value="6" name="TAPE_MAX_WIDTH"/>
+<constant value="1" name="TAPE_MAX_WIDTH"/>
+<constant value="400" name="MAX_TARGET"/>
 
 
 <!--show keywords state-->
@@ -56,12 +57,14 @@ var secondBarcodeRead = 0
 var width = 0    	 
 var tapeReading
 
-var lastTape = 0
+var lastTape = 1
+
+var isFollowLine = 1
 
 onevent button.forward              # if forward button is pressed  
   state = TAPE_RIGHT                   # transition to FORWARD state
-  motor.left.target = TARGET        # start moving forward
-  motor.right.target = TARGET
+  motor.left.target = MAX_TARGET        # start moving forward
+  motor.right.target = MAX_TARGET
   state = STRAIGHT
   turnCount = 0
 	
@@ -75,7 +78,7 @@ onevent button.backward             # if backward button is pressed
   	if state != STOPPED then          # only if we are not STOPPED
   		callsub follow_line
 #  		callsub read_barcode
-		callsub read_tape
+#		callsub read_tape
   		
   	end
    
@@ -123,21 +126,28 @@ tapeReading = (prox.ground.delta[0] + prox.ground.delta[1]) / 2
 	 	if secondBarcode[0] == 0 and secondBarcode[1] == 0 and secondBarcode[2] == 1 then # right
 	 		motor.left.target = TARGET
 	 		motor.right.target = -TARGET
-	 		isTuring = TURN_START
-	 		timer.period[0] = TIMER_TURN
+	 		isTuring = TURN_END
 	 		lastTape = 1
+	 		timer.period[0] = TIMER_TURN - 50
+	 		
 	 	elseif secondBarcode[0] == 1 and secondBarcode[1] == 0 and secondBarcode[2] == 0 then # left
 	 		motor.left.target = -TARGET
 	 		motor.right.target = TARGET
-	 		isTuring = TURN_START
-	 		timer.period[0] = TIMER_TURN
+	 		isTuring = TURN_END
 	 		lastTape = 1
+	 		timer.period[0] = TIMER_TURN - 50
+	 		
+	 		
 	 	end
+	 	isFollowLine = 1
 	 end
  
  
  sub follow_line
  # compute min, max, and mean over the current sensor readings 
+ 	if isFollowLine == 0 then
+ 		return
+ 	end
  	if isTuring == TURN_START then
  		return
  	end
@@ -160,7 +170,7 @@ tapeReading = (prox.ground.delta[0] + prox.ground.delta[1]) / 2
    if state == TAPE_LEFT and  prox.ground.delta[0] >= EDGE then
       state = TAPE_RIGHT                          #  transition to RIGHT state
       motor.left.target = TAPE_TARGET             #  move right
-      motor.right.target = TAPE_TARGET - 50
+      motor.right.target = 0
       tapeCount++
       
       
@@ -169,7 +179,7 @@ tapeReading = (prox.ground.delta[0] + prox.ground.delta[1]) / 2
     # if moving right and sensing black line
    if (state == TAPE_RIGHT) and prox.ground.delta[0] &lt; EDGE then
       state = TAPE_LEFT                           #  transition to LEFT state
-      motor.left.target = TAPE_TARGET - 50                  #  move left
+      motor.left.target = 0                  #  move left
       motor.right.target = TAPE_TARGET
       tapeCount++
        
@@ -249,10 +259,10 @@ tapeReading = (prox.ground.delta[0] + prox.ground.delta[1]) / 2
 		 isTuring = TURN_END
 		 timer.period[0] = TIMER_TURN
 	 elseif 	isTuring == TURN_END then
-	 	motor.left.target = TARGET - 100           
+	 	motor.left.target = TARGET - 100         
 		motor.right.target = TARGET
 		timer.period[0] = 0
-		timer.period[1] = TIMER1
+		
 		tapeCount = 0
 	 end
  
