@@ -14,7 +14,7 @@
 <constant value="400" name="EDGE"/>
 <constant value="200" name="TAPE_TARGET"/>
 <constant value="300" name="BACKWARD_TIMER"/>
-<constant value="-400" name="BACKWARD_TARGET"/>
+<constant value="-150" name="BACKWARD_TARGET"/>
 <constant value="0" name="TURN_DIRECTION_LEFT"/>
 <constant value="1" name="TURN_DIRECTION_RIGHT"/>
 <constant value="1" name="TURN_START"/>
@@ -45,14 +45,14 @@ var turnCount
 var nextTurn
 var isTuring
 var firstBarcode[3] = [-1,-1,-1]
-var secondBarcode[3] = [0,0,1]
+var secondBarcode[3] = [-1,-1,-1]
 var barcodeRead[3] = [-1,-1,-1]
 # once detect tape, increament about every 0.1s, when this value is larger than 4, stop changing the speed
 var tapeCount = 0							
 var firstGroupDirection[3] = [-1, -1, -1]
 
-var firstBarcodeRead = 1
-var secondBarcodeRead = 1
+var firstBarcodeRead = 0
+var secondBarcodeRead = 0
 
 var width = 0    	 
 var tapeReading
@@ -61,11 +61,13 @@ var lastTape = 0
 
 var isFollowLine = 0
 
+var tempTarget = 0
+
 onevent button.forward              # if forward button is pressed  
   state = TAPE_RIGHT                   # transition to FORWARD state
-  motor.left.target = MAX_TARGET        # start moving forward
+  motor.left.target = MAX_TARGET - 200        # start moving forward
   motor.right.target = MAX_TARGET
-  state = STRAIGHT
+  timer.period[1] = 500
   turnCount = 0
 	
 onevent button.backward             # if backward button is pressed
@@ -77,10 +79,10 @@ onevent button.backward             # if backward button is pressed
  onevent prox                        # check proximity sensors
   	if state != STOPPED then          # only if we are not STOPPED
   		callsub follow_line
-#  		callsub read_barcode
-if width &lt;= TAPE_MAX_WIDTH then
-	callsub read_tape
-end
+ 		callsub read_barcode
+		if width &lt;= TAPE_MAX_WIDTH then
+			callsub read_tape
+		end
 		
   		
   	end
@@ -177,7 +179,7 @@ sub read_tape
       motor.left.target = TAPE_TARGET             #  move right
       motor.right.target = 0
       tapeCount++
-      
+      timer.period[1] = 0
       
    end
     
@@ -187,7 +189,7 @@ sub read_tape
       motor.left.target = 0                 #  move left
       motor.right.target = TAPE_TARGET
       tapeCount++
-       
+       timer.period[1] = 0
     end
    
  
@@ -226,6 +228,7 @@ sub read_tape
  		secondBarcode = barcodeRead
  		secondBarcodeRead = 1
  	end
+ 	call leds.circle(barcodeRead[1] * 32,barcodeRead[2] * 32,0,0,0,0,0, barcodeRead[0] * 32)
  	callsub determine_next_turn
  	barcodeRead = [-1, -1, -1]
  	
@@ -283,9 +286,9 @@ sub read_tape
 	 end
  
  onevent timer1
+ 	tempTarget = motor.left.target
  	motor.left.target = motor.right.target             
-	motor.right.target = motor.left.target
-	state = STRAIGHT
+	motor.right.target = tempTarget
  	
  	
   	
