@@ -24,10 +24,11 @@
 <constant value="1500" name="THRESHOLD"/>
 <constant value="450" name="TIMER_TURN"/>
 <constant value="5" name="SEARCH"/>
-<constant value="1" name="BLACK_TH"/>
+<constant value="300" name="BLACK_TH"/>
 <constant value="2" name="BLACK"/>
-<constant value="-1" name="GRAY_TH"/>
+<constant value="1000" name="GRAY_TH"/>
 <constant value="3" name="GRAY"/>
+<constant value="6" name="TAPE_MAX_WIDTH"/>
 
 
 <!--show keywords state-->
@@ -43,7 +44,7 @@ var turnCount
 var nextTurn
 var isTuring
 var firstBarcode[3] = [-1,-1,-1]
-var secondBarcode[3] = [-1,-1,-1]
+var secondBarcode[3] = [0,0,1]
 var barcodeRead[3] = [-1,-1,-1]
 # once detect tape, increament about every 0.1s, when this value is larger than 4, stop changing the speed
 var tapeCount = 0							
@@ -54,6 +55,8 @@ var secondBarcodeRead = 0
 
 var width = 0    	 
 var tapeReading
+
+var lastTape = 0
 
 onevent button.forward              # if forward button is pressed  
   state = TAPE_RIGHT                   # transition to FORWARD state
@@ -71,12 +74,13 @@ onevent button.backward             # if backward button is pressed
  onevent prox                        # check proximity sensors
   	if state != STOPPED then          # only if we are not STOPPED
   		callsub follow_line
-  		callsub read_barcode
+#  		callsub read_barcode
+		callsub read_tape
   		
   	end
    
  onevent tap
-  	callsub stop
+#  	callsub stop
   
  sub stop
  	motor.left.target = BACKWARD_TARGET             # stop motors
@@ -90,13 +94,16 @@ onevent button.backward             # if backward button is pressed
   	timer.period[0] = BACKWARD_TIMER
   	
 sub read_tape
+if lastTape == 1 then
+	return
+end
 tapeReading = (prox.ground.delta[0] + prox.ground.delta[1]) / 2
     
-    when state == SEARCH and tapeReading &lt;= BLACK_TH do 
+    when tapeReading &lt;= BLACK_TH do 
       state = BLACK 
     end
     
-    when state== SEARCH and tapeReading &lt;= GRAY_TH and tapeReading > BLACK_TH do 
+    when tapeReading &lt;= GRAY_TH and tapeReading > BLACK_TH do 
       state = GRAY 
     end
     
@@ -105,20 +112,29 @@ tapeReading = (prox.ground.delta[0] + prox.ground.delta[1]) / 2
         width++
         call leds.top(0,0,32)
       else
-        callsub stop
-      end
-    end
-    
-    if state==GRAY then
-      if tapeReading &lt;= GRAY_TH then
-        width++
-        call leds.top(0,32,0)
-      else
         callsub tape_stop
       end
     end
+    callsub tape_stop
+    
     
  sub tape_stop
+	 if width >= TAPE_MAX_WIDTH then
+	 	if secondBarcode[0] == 0 and secondBarcode[1] == 0 and secondBarcode[2] == 1 then # right
+	 		motor.left.target = TARGET
+	 		motor.right.target = -TARGET
+	 		isTuring = TURN_START
+	 		timer.period[0] = TIMER_TURN
+	 		lastTape = 1
+	 	elseif secondBarcode[0] == 1 and secondBarcode[1] == 0 and secondBarcode[2] == 0 then # left
+	 		motor.left.target = -TARGET
+	 		motor.right.target = TARGET
+	 		isTuring = TURN_START
+	 		timer.period[0] = TIMER_TURN
+	 		lastTape = 1
+	 	end
+	 end
+ 
  
  sub follow_line
  # compute min, max, and mean over the current sensor readings 
@@ -129,7 +145,7 @@ tapeReading = (prox.ground.delta[0] + prox.ground.delta[1]) / 2
  		return
  		tapeCount = 0
  	end
- 	if tapeCount > 2 then
+ 	if tapeCount > 2 and lastTape == 0 then
  		motor.left.target = TAPE_TARGET             #  move right
       motor.right.target = TAPE_TARGET
       state = STRAIGHT
