@@ -51,8 +51,8 @@ var barcodeRead[3] = [-1,-1,-1]
 var tapeCount = 0							
 var firstGroupDirection[3] = [-1, -1, -1]
 
-var firstBarcodeRead = 0
-var secondBarcodeRead = 0
+var firstBarcodeRead = 1
+var secondBarcodeRead = 1
 
 var width = 0    	 
 var tapeReading
@@ -100,10 +100,10 @@ end
   	timer.period[0] = BACKWARD_TIMER
   	
 sub read_tape
-if lastTape == 1 then
-	return
-end
-tapeReading = (prox.ground.delta[0] + prox.ground.delta[1]) / 2
+	if lastTape == 1 then
+		return
+	end
+	tapeReading = (prox.ground.delta[0] + prox.ground.delta[1]) / 2
     
     when tapeReading &lt;= BLACK_TH do 
       state = BLACK 
@@ -128,21 +128,23 @@ tapeReading = (prox.ground.delta[0] + prox.ground.delta[1]) / 2
 	 if width >= TAPE_MAX_WIDTH then
 	 	if secondBarcode[0] == 0 and secondBarcode[1] == 0 and secondBarcode[2] == 1 then # right
 	 		motor.left.target = TARGET
-	 		motor.right.target = -TARGET
+	 		motor.right.target = 0
 	 		isTuring = TURN_END
 	 		lastTape = 1
+	 		isFollowLine = 1
 	 		timer.period[0] = TIMER_TURN - 100
 	 		
 	 	elseif secondBarcode[0] == 1 and secondBarcode[1] == 0 and secondBarcode[2] == 0 then # left
-	 		motor.left.target = -TARGET
+	 		motor.left.target = 0
 	 		motor.right.target = TARGET
 	 		isTuring = TURN_END
 	 		lastTape = 1
+	 		isFollowLine = 1
 	 		timer.period[0] = TIMER_TURN - 100
 	 		
 	 		
 	 	end
-	 	isFollowLine = 1
+	 	
 	 end
  
  
@@ -166,23 +168,23 @@ tapeReading = (prox.ground.delta[0] + prox.ground.delta[1]) / 2
  	end
    call math.stat( prox.horizontal[0:4], min, max, mean )
     
-   if (prox.ground.delta[0] &lt; EDGE)  then
+   if (prox.ground.delta[0] &lt; EDGE) and (state != TAPE_RIGHT and state != TAPE_LEFT) then
     	state = TAPE_RIGHT
    end
     
    if state == TAPE_LEFT and  prox.ground.delta[0] >= EDGE then
       state = TAPE_RIGHT                          #  transition to RIGHT state
       motor.left.target = TAPE_TARGET             #  move right
-      motor.right.target = TAPE_TARGET - 150
+      motor.right.target = 0
       tapeCount++
       
       
    end
     
     # if moving right and sensing black line
-   if (state == TAPE_RIGHT) and prox.ground.delta[0] &lt; EDGE then
+   if (state == TAPE_RIGHT and  prox.ground.delta[0] &lt; EDGE) then
       state = TAPE_LEFT                           #  transition to LEFT state
-      motor.left.target = TAPE_TARGET - 150                  #  move left
+      motor.left.target = 0                 #  move left
       motor.right.target = TAPE_TARGET
       tapeCount++
        
@@ -262,11 +264,22 @@ tapeReading = (prox.ground.delta[0] + prox.ground.delta[1]) / 2
 		 isTuring = TURN_END
 		 timer.period[0] = TIMER_TURN
 	 elseif 	isTuring == TURN_END then
-	 	motor.left.target = TARGET - 100         
-		motor.right.target = TARGET
+	 if  nextTurn == TURN_DIRECTION_LEFT then
+	 	motor.left.target = TARGET        
+		motor.right.target = TARGET -  100 
+		tapeCount = 0
 		timer.period[0] = 0
 		
+		
+		end
+		if nextTurn == TURN_DIRECTION_RIGHT then
+		motor.left.target = TARGET  -  100        
+		motor.right.target = TARGET
 		tapeCount = 0
+		timer.period[0] = 0
+		
+		
+		end
 	 end
  
  onevent timer1
