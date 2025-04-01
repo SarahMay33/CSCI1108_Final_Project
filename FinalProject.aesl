@@ -11,7 +11,7 @@
 <constant value="2" name="TAPE_LEFT"/>
 <constant value="3" name="STRAIGHT"/>
 <constant value="300" name="TARGET"/>
-<constant value="400" name="EDGE"/>
+<constant value="450" name="EDGE"/>
 <constant value="200" name="TAPE_TARGET"/>
 <constant value="300" name="BACKWARD_TIMER"/>
 <constant value="-150" name="BACKWARD_TARGET"/>
@@ -22,7 +22,7 @@
 <constant value="500" name="TIMER1"/>
 <constant value="225" name="TURN_TARGET"/>
 <constant value="1800" name="THRESHOLD"/>
-<constant value="400" name="TIMER_TURN"/>
+<constant value="415" name="TIMER_TURN"/>
 <constant value="5" name="SEARCH"/>
 <constant value="300" name="BLACK_TH"/>
 <constant value="2" name="BLACK"/>
@@ -30,7 +30,7 @@
 <constant value="3" name="GRAY"/>
 <constant value="7" name="TAPE_MAX_WIDTH"/>
 <constant value="400" name="MAX_TARGET"/>
-<constant value="150" name="TIMER_FORWARD"/>
+<constant value="200" name="TIMER_FORWARD"/>
 
 
 <!--show keywords state-->
@@ -47,13 +47,15 @@ var nextTurn
 var isTuring
 var firstBarcode[3] = [-1,-1,-1]
 var secondBarcode[3] = [-1,-1,-1]
+var thirdBarcode[3] = [-1, -1, -1]
 var barcodeRead[3] = [-1,-1,-1]
 # once detect tape, increament about every 0.1s, when this value is larger than 4, stop changing the speed
 var tapeCount = 0							
-var firstGroupDirection[3] = [-1, -1, -1]
+var firstGroupDirection[4] = [-1, -1, -1, -1]
 
 var firstBarcodeRead = 0
 var secondBarcodeRead = 0
+var thirdBarcodeRead = 0
 
 var width = 0    	 
 var tapeReading
@@ -65,8 +67,8 @@ var isFollowLine = 0
 var tempTarget = 0
 
 onevent button.forward              # if forward button is pressed  
-  state = TAPE_RIGHT                   # transition to FORWARD state
-  motor.left.target = MAX_TARGET - 250        # start moving forward
+  state = STRAIGHT                  # transition to FORWARD state
+  motor.left.target = MAX_TARGET - 200        # start moving forward
   motor.right.target = MAX_TARGET
   timer.period[1] = TIMER_FORWARD
   turnCount = 0
@@ -94,11 +96,7 @@ onevent button.backward             # if backward button is pressed
   
  sub stop
  	timer.period[1] = 0
- 	if turnCount &lt;= 3 and turnCount > 0 then
- 		nextTurn = firstGroupDirection[turnCount - 1]
- 	end
- 	
- 	
+ 	timer.period[0] = 0
  	
  	callsub turn_direction
   	isTuring = TURN_START
@@ -172,7 +170,7 @@ sub read_tape
  	end
    call math.stat( prox.horizontal[0:4], min, max, mean )
 
-   if (prox.ground.delta[0] &lt; EDGE) and (state != TAPE_RIGHT and state != TAPE_LEFT) then
+   if (prox.ground.delta[0] &lt; EDGE) then
     	state = TAPE_RIGHT
    end
     
@@ -193,17 +191,20 @@ sub read_tape
   		tapeCount++
       timer.period[1] = 0
     end
-   if tapeCount == 3 then
+   if tapeCount == 2 then
    	turnCount++
    end
  
  sub read_barcode
+ 	if isTuring == TURN_START or motor.left.target &lt; 0 or motor.right.target &lt; 0 then
+ 		return
+ 	end
 	 if timer.period[0] > 0 then
 	 	return
 	 end
- 	if prox.horizontal[1] >= THRESHOLD - 600 then
+ 	if prox.horizontal[1] >= THRESHOLD - 300 then
  		barcodeRead[0] = 1
- 	elseif  prox.horizontal[1] &lt; THRESHOLD  - 600 then
+ 	elseif  prox.horizontal[1] &lt; THRESHOLD  - 300 then
  		barcodeRead[0] = 0
  	end
  	if prox.horizontal[2] >= THRESHOLD then
@@ -211,9 +212,9 @@ sub read_tape
  	elseif  prox.horizontal[2] &lt; THRESHOLD  then
  		barcodeRead[1] = 0
  	end
- 	if prox.horizontal[3] >= THRESHOLD  - 600 then
+ 	if prox.horizontal[3] >= THRESHOLD  - 300 then
  		barcodeRead[2] = 1
- 	elseif  prox.horizontal[3] &lt; THRESHOLD  - 600 then
+ 	elseif  prox.horizontal[3] &lt; THRESHOLD  - 300 then
  		barcodeRead[2] = 0
  	end
  	# if barcode is invalid, return
@@ -228,37 +229,50 @@ sub read_tape
  		turnCount = 0
  		callsub determine_first_group_turn
  		callsub stop
- 	end
- 	if firstBarcodeRead == 1 and secondBarcodeRead == 0 and turnCount > 0 then
+ 	elseif firstBarcodeRead == 1 and secondBarcodeRead == 0 then
  		secondBarcode = barcodeRead
  		
  		secondBarcodeRead = 1
- 		callsub stop
+ 		
+ 	elseif firstBarcodeRead == 1 and secondBarcodeRead ==1 and thirdBarcodeRead == 0 then
+ 		thirdBarcode = barcodeRead
+ 		
+ 		thirdBarcodeRead = 1
+ 		
  	end
  	call leds.circle(barcodeRead[1] * 32,barcodeRead[2] * 32,0,0,0,0,0, barcodeRead[0] * 32)
+ 
  	callsub stop
+ 
+ 	
  	callsub determine_next_turn
  	barcodeRead = [-1, -1, -1]
  	
  	
  sub determine_next_turn
  # if the barcode is valid(left 100, right 001, or dead end 010)
- 	if (barcodeRead[0] == 0 and barcodeRead[1] == 0 and barcodeRead[2] == 1)
- 	or (barcodeRead[0] == 1 and barcodeRead[1] == 0 and barcodeRead[2] == 0) 
- 	or (barcodeRead[0] == 0 and barcodeRead[1] == 1 and barcodeRead[2] == 0) then
- 	 	
- 	 	if turnCount > 0 and turnCount &lt;= 3 then
- 	 		nextTurn = firstGroupDirection[turnCount - 1]
- 	 	end
- 	end
+# 	if (barcodeRead[0] == 0 and barcodeRead[1] == 0 and barcodeRead[2] == 1)
+# 	or (barcodeRead[0] == 1 and barcodeRead[1] == 0 and barcodeRead[2] == 0) 
+# 	or (barcodeRead[0] == 0 and barcodeRead[1] == 1 and barcodeRead[2] == 0) then
+# 	 	
+# 	 	if turnCount > 0 and turnCount &lt;= 3 then
+# 	 		nextTurn = firstGroupDirection[turnCount - 1]
+# 	 	end
+# 	end
+	if firstBarcodeRead == 1 and secondBarcodeRead == 1 and thirdBarcodeRead == 0 then
+		nextTurn = firstGroupDirection[1]
+	end
+	if secondBarcodeRead == 1 and thirdBarcodeRead == 1 then
+		nextTurn = firstGroupDirection[2]
+	end
  	
  sub determine_first_group_turn
  	if firstBarcode[0] == 1 and firstBarcode[1] == 0 and firstBarcode[2] == 0 then
  		nextTurn = TURN_DIRECTION_LEFT
- 		firstGroupDirection = [0, 1, 1]
+ 		firstGroupDirection = [0, 1, 1, 0]
  	elseif firstBarcode[0] == 0 and firstBarcode[1] == 0 and firstBarcode[2] == 1 then
  		nextTurn = TURN_DIRECTION_RIGHT
- 		firstGroupDirection = [1, 0, 0]
+ 		firstGroupDirection = [1, 0, 0, 1]
  	end
  	
  sub determine_second_group_turn
@@ -277,17 +291,14 @@ sub read_tape
 		 timer.period[0] = TIMER_TURN
 	 elseif 	isTuring == TURN_END then
 	 
-	 	motor.left.target = TARGET        
-		motor.right.target = TARGET -  250 
+	 	motor.left.target = MAX_TARGET        
+		motor.right.target = MAX_TARGET -  200 
 		tapeCount = 0
-		if state != STRAIGHT then
-			turnCount++
-		end
+		
 		
 		timer.period[0] = 0
 		timer.period[1] = TIMER_FORWARD
 	end
-	tapeCount = 0
 	isFollowLine = 1
  
  
