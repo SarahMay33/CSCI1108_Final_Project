@@ -94,7 +94,10 @@ onevent button.backward             # if backward button is pressed
   
  sub stop
  	timer.period[1] = 0
- 	nextTurn = firstGroupDirection[turnCount]
+ 	if turnCount &lt;= 3 and turnCount > 0 then
+ 		nextTurn = firstGroupDirection[turnCount - 1]
+ 	end
+ 	
  	
  	
  	callsub turn_direction
@@ -177,7 +180,7 @@ sub read_tape
       state = TAPE_RIGHT                          #  transition to RIGHT state
       motor.left.target = TAPE_TARGET             #  move right
       motor.right.target = 0
-
+		tapeCount++
       timer.period[1] = 0
       
    end
@@ -187,10 +190,12 @@ sub read_tape
       state = TAPE_LEFT                           #  transition to LEFT state
       motor.left.target = 0               #  move left
       motor.right.target = TAPE_TARGET
-  
+  		tapeCount++
       timer.period[1] = 0
     end
-   
+   if tapeCount == 3 then
+   	turnCount++
+   end
  
  sub read_barcode
 	 if timer.period[0] > 0 then
@@ -259,7 +264,7 @@ sub read_tape
  sub determine_second_group_turn
  
  sub turn_direction
-  if isTuring == TURN_START then
+ 	if isTuring == TURN_START then
 		 if  nextTurn == TURN_DIRECTION_LEFT then
 		 	motor.left.target = -TURN_TARGET             
 		  	motor.right.target = TURN_TARGET
