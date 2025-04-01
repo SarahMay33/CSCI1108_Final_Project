@@ -68,9 +68,9 @@ var tempTarget = 0
 
 onevent button.forward              # if forward button is pressed  
   state = STRAIGHT                  # transition to FORWARD state
-  motor.left.target = MAX_TARGET - 200        # start moving forward
+  motor.left.target = MAX_TARGET - 150        # start moving forward
   motor.right.target = MAX_TARGET
-  timer.period[1] = TIMER_FORWARD
+  timer.period[1] = TIMER_FORWARD + 200
   turnCount = 0
 	
 onevent button.backward             # if backward button is pressed
@@ -287,7 +287,7 @@ sub turn_block
 	 elseif 	isTuring == TURN_END then
 	 
 	 	motor.left.target = MAX_TARGET        
-		motor.right.target = MAX_TARGET - 200 
+		motor.right.target = 0
 		tapeCount = 0
 		
 		
