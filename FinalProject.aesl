@@ -97,7 +97,7 @@ onevent button.backward             # if backward button is pressed
  sub stop
  	timer.period[1] = 0
  	timer.period[0] = 0
- 	
+ 	isTuring = TURN_START
  	callsub turn_direction
   	isTuring = TURN_START
   	
@@ -231,18 +231,18 @@ sub read_tape
  		callsub stop
  	elseif firstBarcodeRead == 1 and secondBarcodeRead == 0 then
  		secondBarcode = barcodeRead
- 		
+ 		nextTurn = firstGroupDirection[1]
  		secondBarcodeRead = 1
- 		
+ 		callsub stop
  	elseif firstBarcodeRead == 1 and secondBarcodeRead ==1 and thirdBarcodeRead == 0 then
  		thirdBarcode = barcodeRead
- 		
+ 		nextTurn = firstGroupDirection[2]
  		thirdBarcodeRead = 1
- 		
+ 		callsub stop
  	end
  	call leds.circle(barcodeRead[1] * 32,barcodeRead[2] * 32,0,0,0,0,0, barcodeRead[0] * 32)
  
- 	callsub stop
+ 	
  
  	
  	callsub determine_next_turn
@@ -261,8 +261,7 @@ sub read_tape
 # 	end
 	if firstBarcodeRead == 1 and secondBarcodeRead == 1 and thirdBarcodeRead == 0 then
 		nextTurn = firstGroupDirection[1]
-	end
-	if secondBarcodeRead == 1 and thirdBarcodeRead == 1 then
+	elseif secondBarcodeRead == 1 and thirdBarcodeRead == 1 then
 		nextTurn = firstGroupDirection[2]
 	end
  	
