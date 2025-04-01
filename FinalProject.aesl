@@ -20,9 +20,9 @@
 <constant value="1" name="TURN_START"/>
 <constant value="0" name="TURN_END"/>
 <constant value="500" name="TIMER1"/>
-<constant value="225" name="TURN_TARGET"/>
+<constant value="400" name="TURN_TARGET"/>
 <constant value="1800" name="THRESHOLD"/>
-<constant value="415" name="TIMER_TURN"/>
+<constant value="290" name="TIMER_TURN"/>
 <constant value="5" name="SEARCH"/>
 <constant value="300" name="BLACK_TH"/>
 <constant value="2" name="BLACK"/>
@@ -89,6 +89,7 @@ onevent button.backward             # if backward button is pressed
   	if state != STOPPED then          # only if we are not STOPPED
   		callsub follow_line
  		callsub read_barcode
+# 		callsub turn_block
 		if width &lt;= TAPE_MAX_WIDTH then
 			callsub read_tape
 		end
@@ -178,7 +179,6 @@ sub read_tape
       state = TAPE_RIGHT                          #  transition to RIGHT state
       motor.left.target = TAPE_TARGET             #  move right
       motor.right.target = 0
-		tapeCount++
       timer.period[1] = 0
       
    end
@@ -188,12 +188,16 @@ sub read_tape
       state = TAPE_LEFT                           #  transition to LEFT state
       motor.left.target = 0               #  move left
       motor.right.target = TAPE_TARGET
-  		tapeCount++
       timer.period[1] = 0
     end
-   if tapeCount == 2 then
-   	turnCount++
-   end
+  
+   
+sub turn_block
+	if thirdBarcodeRead == 1 and mean &lt; THRESHOLD then # wall after the third barcode
+		nextTurn = firstGroupDirection[3]
+		lastTape = 1
+		callsub stop 
+	end
  
  sub read_barcode
  	if isTuring == TURN_START or motor.left.target &lt; 0 or motor.right.target &lt; 0 then
@@ -223,7 +227,7 @@ sub read_tape
  	or (barcodeRead[0] == 0 and barcodeRead[1] == 1 and barcodeRead[2] == 0))then
  		return
  	end
- 	if (firstBarcode[0] == -1 and firstBarcode[1] == -1 and firstBarcode[2] == -1) then
+ 	if (firstBarcodeRead == 0) then
  		firstBarcode = barcodeRead
  		firstBarcodeRead = 1
  		turnCount = 0
@@ -250,15 +254,7 @@ sub read_tape
  	
  	
  sub determine_next_turn
- # if the barcode is valid(left 100, right 001, or dead end 010)
-# 	if (barcodeRead[0] == 0 and barcodeRead[1] == 0 and barcodeRead[2] == 1)
-# 	or (barcodeRead[0] == 1 and barcodeRead[1] == 0 and barcodeRead[2] == 0) 
-# 	or (barcodeRead[0] == 0 and barcodeRead[1] == 1 and barcodeRead[2] == 0) then
-# 	 	
-# 	 	if turnCount > 0 and turnCount &lt;= 3 then
-# 	 		nextTurn = firstGroupDirection[turnCount - 1]
-# 	 	end
-# 	end
+
 	if firstBarcodeRead == 1 and secondBarcodeRead == 1 and thirdBarcodeRead == 0 then
 		nextTurn = firstGroupDirection[1]
 	elseif secondBarcodeRead == 1 and thirdBarcodeRead == 1 then
@@ -291,7 +287,7 @@ sub read_tape
 	 elseif 	isTuring == TURN_END then
 	 
 	 	motor.left.target = MAX_TARGET        
-		motor.right.target = MAX_TARGET -  200 
+		motor.right.target = MAX_TARGET - 200 
 		tapeCount = 0
 		
 		
