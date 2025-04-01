@@ -65,15 +65,18 @@ var tempTarget = 0
 
 onevent button.forward              # if forward button is pressed  
   state = TAPE_RIGHT                   # transition to FORWARD state
-  motor.left.target = MAX_TARGET - 200        # start moving forward
+  motor.left.target = MAX_TARGET - 100        # start moving forward
   motor.right.target = MAX_TARGET
-  timer.period[1] = 500
+  timer.period[1] = 150
   turnCount = 0
 	
 onevent button.backward             # if backward button is pressed
   state = STOPPED                   # transition to STOPPED state
   motor.left.target = 0             # stop motors
   motor.right.target = 0
+  
+  onevent button.left
+  callsub read_barcode
   
   
  onevent prox                        # check proximity sensors
@@ -83,23 +86,12 @@ onevent button.backward             # if backward button is pressed
 		if width &lt;= TAPE_MAX_WIDTH then
 			callsub read_tape
 		end
-		
-  		
   	end
-   
- onevent tap
-#  	callsub stop
   
  sub stop
- 	motor.left.target = BACKWARD_TARGET             # stop motors
-  	motor.right.target = BACKWARD_TARGET
+ 	callsub turn_direction
   	isTuring = TURN_START
-  	turnCount++
-  	if turnCount &lt;= 3 then
-  		nextTurn = firstGroupDirection[turnCount-1]
-  	end
   	
-  	timer.period[0] = BACKWARD_TIMER
   	
 sub read_tape
 	if lastTape == 1 then
@@ -118,7 +110,6 @@ sub read_tape
     if state==BLACK then
       if tapeReading &lt;= BLACK_TH then
         width++
-        call leds.top(0,0,32)
       else
         callsub tape_stop
       end
@@ -218,19 +209,24 @@ sub read_tape
  	or (barcodeRead[0] == 0 and barcodeRead[1] == 1 and barcodeRead[2] == 0))then
  		return
  	end
- 	if (firstBarcode[0] == -1 and firstBarcode[1] == -1 and firstBarcode[2] == -1 )
- 	or (firstBarcode[0] == 0 and firstBarcode[1] == 0 and firstBarcode[2] == 0) then
+ 	if (firstBarcode[0] == -1 and firstBarcode[1] == -1 and firstBarcode[2] == -1) then
  		firstBarcode = barcodeRead
  		firstBarcodeRead = 1
+ 		
  		callsub determine_first_group_turn
+ 		callsub stop
  	end
  	if firstBarcodeRead == 1 and secondBarcodeRead == 0 and turnCount > 0 then
  		secondBarcode = barcodeRead
+ 		
  		secondBarcodeRead = 1
+ 		callsub stop
  	end
  	call leds.circle(barcodeRead[1] * 32,barcodeRead[2] * 32,0,0,0,0,0, barcodeRead[0] * 32)
+ 	callsub stop
  	callsub determine_next_turn
  	barcodeRead = [-1, -1, -1]
+ 	
  	
  sub determine_next_turn
  # if the barcode is valid(left 100, right 001, or dead end 010)
@@ -254,8 +250,8 @@ sub read_tape
  	
  sub determine_second_group_turn
  
- onevent timer0
-	 if isTuring == TURN_START then
+ sub turn_direction
+  if isTuring == TURN_START then
 		 if  nextTurn == TURN_DIRECTION_LEFT then
 		 	motor.left.target = -TURN_TARGET             
 		  	motor.right.target = TURN_TARGET
@@ -267,24 +263,18 @@ sub read_tape
 		 isTuring = TURN_END
 		 timer.period[0] = TIMER_TURN
 	 elseif 	isTuring == TURN_END then
-	 if  nextTurn == TURN_DIRECTION_LEFT then
+	 
 	 	motor.left.target = TARGET        
 		motor.right.target = TARGET -  100 
 		tapeCount = 0
 		timer.period[0] = 0
-		
-		
-		end
-		if nextTurn == TURN_DIRECTION_RIGHT then
-		motor.left.target = TARGET  -  100        
-		motor.right.target = TARGET
-		tapeCount = 0
-		timer.period[0] = 0
-		
-		
-		end
-	 end
+		timer.period[1] = 500
+	end
  
+ 
+ onevent timer0
+	callsub turn_direction
+	
  onevent timer1
  	tempTarget = motor.left.target
  	motor.left.target = motor.right.target             
