@@ -30,10 +30,10 @@
 <constant value="1000" name="GRAY_TH"/>
 <constant value="3" name="GRAY"/>
 <constant value="7" name="TAPE_MAX_WIDTH"/>
-<constant value="275" name="MAX_TARGET"/>
-<constant value="930" name="TIMER_FORWARD"/>
-<constant value="550" name="TIMER_TURN_SECOND"/>
-<constant value="200" name="TIMER_TURN_THIRD"/>
+<constant value="300" name="MAX_TARGET"/>
+<constant value="950" name="TIMER_FORWARD"/>
+<constant value="600" name="TIMER_TURN_SECOND"/>
+<constant value="420" name="TIMER_TURN_THIRD"/>
 <constant value="500" name="TIMER_TURN_FOURTH"/>
 <constant value="500" name="TIMER_TURN_FIFTH"/>
 
@@ -61,6 +61,7 @@ var firstGroupDirection[4] = [-1, -1, -1, -1]
 var firstBarcodeRead = 0
 var secondBarcodeRead = 0
 var thirdBarcodeRead = 0
+var fourthRead = 0
 
 var width = 0    	 
 var tapeReading
@@ -211,9 +212,10 @@ sub read_tape
   
    
 sub turn_block
-	if thirdBarcodeRead == 1 and mean &lt; THRESHOLD and state == STRAIGHT then # wall after the third barcode
+	if firstBarcodeRead == 1 and secondBarcodeRead == 1 and thirdBarcodeRead == 1 and fourthRead == 0 and mean &lt; THRESHOLD and state == STRAIGHT then # wall after the third barcode
 		nextTurn = firstGroupDirection[3]
 		lastTape = 1
+		fourthRead = 1
 		callsub stop 
 	end
  
@@ -352,37 +354,24 @@ sub forward
 	 	timer.period[0] = TIMER_TURN
 	 elseif secondBarcodeRead == 1 and thirdBarcodeRead == 0 then
 	 	timer.period[0] = TIMER_TURN_SECOND
-	 elseif  thirdBarcodeRead == 1 then
+	 elseif  thirdBarcodeRead == 1 and fourthRead == 0 then
 	 	timer.period[0] = TIMER_TURN_THIRD
-	 else
-	  	timer.period[0] = TIMER_TURN
+	 elseif  fourthRead == 1 then
+	  	timer.period[0] = TIMER_TURN_FOURTH
 	 end
  
  onevent timer0
 	callsub turn_direction
 	
  onevent timer1
-	 if state != BACKWARD then
+	
 	 	tempTarget = motor.left.target
 	 	motor.left.target = motor.right.target             
 		motor.right.target = tempTarget
 		timer.period[1] = TIMER_FORWARD
 		timer.period[0] = 0
-	 else
-	 	tempTarget = motor.left.target
-	 	motor.left.target = motor.right.target             
-		motor.right.target = tempTarget
-		backwardCount++
-		if backwardCount >= 5 then
-			timer.period[1] = 0
-			timer.period[0] = 0
-			callsub forward
-		else 
-			timer.period[1] = TIMER_FORWARD
-			timer.period[0] = 0
-		end
-		
-	 end
+	 
+	 
 	 	
  	
  	
