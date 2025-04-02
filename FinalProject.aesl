@@ -33,7 +33,7 @@
 <constant value="275" name="MAX_TARGET"/>
 <constant value="930" name="TIMER_FORWARD"/>
 <constant value="550" name="TIMER_TURN_SECOND"/>
-<constant value="500" name="TIMER_TURN_THIRD"/>
+<constant value="200" name="TIMER_TURN_THIRD"/>
 <constant value="500" name="TIMER_TURN_FOURTH"/>
 <constant value="500" name="TIMER_TURN_FIFTH"/>
 
@@ -352,7 +352,7 @@ sub forward
 	 	timer.period[0] = TIMER_TURN
 	 elseif secondBarcodeRead == 1 and thirdBarcodeRead == 0 then
 	 	timer.period[0] = TIMER_TURN_SECOND
-	 elseif  thirdBarcodeRead == 0 then
+	 elseif  thirdBarcodeRead == 1 then
 	 	timer.period[0] = TIMER_TURN_THIRD
 	 else
 	  	timer.period[0] = TIMER_TURN
