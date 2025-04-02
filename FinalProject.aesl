@@ -29,8 +29,8 @@
 <constant value="1000" name="GRAY_TH"/>
 <constant value="3" name="GRAY"/>
 <constant value="7" name="TAPE_MAX_WIDTH"/>
-<constant value="400" name="MAX_TARGET"/>
-<constant value="300" name="TIMER_FORWARD"/>
+<constant value="300" name="MAX_TARGET"/>
+<constant value="500" name="TIMER_FORWARD"/>
 <constant value="450" name="TIMER_TURN_SECOND"/>
 <constant value="500" name="TIMER_TURN_THIRD"/>
 
@@ -301,13 +301,13 @@ sub turn_block
 		 
 	 elseif 	isTuring == TURN_END then
 	 
-	 	motor.left.target = MAX_TARGET        
+	 	motor.left.target = MAX_TARGET     
 		motor.right.target = 0
 		tapeCount = 0
 		
 		state = STRAIGHT
 		timer.period[0] = 0
-		timer.period[1] = TIMER_FORWARD
+		timer.period[1] = TIMER_FORWARD / 2
 		isFollowLine = 1
 	end
 	
