@@ -30,9 +30,9 @@
 <constant value="1000" name="GRAY_TH"/>
 <constant value="3" name="GRAY"/>
 <constant value="7" name="TAPE_MAX_WIDTH"/>
-<constant value="300" name="MAX_TARGET"/>
+<constant value="280" name="MAX_TARGET"/>
 <constant value="950" name="TIMER_FORWARD"/>
-<constant value="600" name="TIMER_TURN_SECOND"/>
+<constant value="550" name="TIMER_TURN_SECOND"/>
 <constant value="420" name="TIMER_TURN_THIRD"/>
 <constant value="500" name="TIMER_TURN_FOURTH"/>
 <constant value="500" name="TIMER_TURN_FIFTH"/>
@@ -98,7 +98,7 @@ onevent button.backward             # if backward button is pressed
   	if state != STOPPED then          # only if we are not STOPPED
   		callsub follow_line
  		callsub read_barcode
- 		callsub turn_block
+# 		callsub turn_block
 		if width &lt;= TAPE_MAX_WIDTH then
 			callsub read_tape
 		end
@@ -212,7 +212,7 @@ sub read_tape
   
    
 sub turn_block
-	if firstBarcodeRead == 1 and secondBarcodeRead == 1 and thirdBarcodeRead == 1 and fourthRead == 0 and mean &lt; THRESHOLD and state == STRAIGHT then # wall after the third barcode
+	if firstBarcodeRead == 1 and secondBarcodeRead == 1 and thirdBarcodeRead == 1 and fourthRead == 1 and mean &lt; THRESHOLD and state == STRAIGHT then # wall after the third barcode
 		nextTurn = firstGroupDirection[3]
 		lastTape = 1
 		fourthRead = 1
@@ -346,8 +346,16 @@ sub forward
 		
 	state = STRAIGHT
 	timer.period[0] = 0
-	timer.period[1] = TIMER_FORWARD / 2
+	if thirdBarcodeRead == 1 then
+		timer.period[1] = TIMER_FORWARD / 4
+	else
+		timer.period[1] = TIMER_FORWARD / 2
+	end
+	
 	isFollowLine = 1
+	if firstBarcodeRead == 1 and secondBarcodeRead == 1 and thirdBarcodeRead == 1 and fourthRead == 0 then
+		fourthRead = 1
+	end
 	
  sub determine_turn_timer
 	 if firstBarcodeRead == 1 and secondBarcodeRead == 0 then
