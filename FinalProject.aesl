@@ -11,7 +11,7 @@
 <constant value="2" name="TAPE_LEFT"/>
 <constant value="3" name="STRAIGHT"/>
 <constant value="300" name="TARGET"/>
-<constant value="450" name="EDGE"/>
+<constant value="400" name="EDGE"/>
 <constant value="200" name="TAPE_TARGET"/>
 <constant value="300" name="BACKWARD_TIMER"/>
 <constant value="-150" name="BACKWARD_TARGET"/>
@@ -21,8 +21,8 @@
 <constant value="0" name="TURN_END"/>
 <constant value="500" name="TIMER1"/>
 <constant value="400" name="TURN_TARGET"/>
-<constant value="1800" name="THRESHOLD"/>
-<constant value="290" name="TIMER_TURN"/>
+<constant value="2500" name="THRESHOLD"/>
+<constant value="500" name="TIMER_TURN"/>
 <constant value="5" name="SEARCH"/>
 <constant value="300" name="BLACK_TH"/>
 <constant value="2" name="BLACK"/>
@@ -30,7 +30,9 @@
 <constant value="3" name="GRAY"/>
 <constant value="7" name="TAPE_MAX_WIDTH"/>
 <constant value="400" name="MAX_TARGET"/>
-<constant value="200" name="TIMER_FORWARD"/>
+<constant value="300" name="TIMER_FORWARD"/>
+<constant value="450" name="TIMER_TURN_SECOND"/>
+<constant value="500" name="TIMER_TURN_THIRD"/>
 
 
 <!--show keywords state-->
@@ -68,15 +70,16 @@ var tempTarget = 0
 
 onevent button.forward              # if forward button is pressed  
   state = STRAIGHT                  # transition to FORWARD state
-  motor.left.target = MAX_TARGET - 150        # start moving forward
+  motor.left.target = 0        # start moving forward
   motor.right.target = MAX_TARGET
-  timer.period[1] = TIMER_FORWARD + 200
-  turnCount = 0
+  timer.period[1] = TIMER_FORWARD / 2
+  isFollowLine = 1
 	
 onevent button.backward             # if backward button is pressed
   state = STOPPED                   # transition to STOPPED state
   motor.left.target = 0             # stop motors
   motor.right.target = 0
+  callsub reset
   
   onevent button.left
   callsub read_barcode
@@ -89,18 +92,22 @@ onevent button.backward             # if backward button is pressed
   	if state != STOPPED then          # only if we are not STOPPED
   		callsub follow_line
  		callsub read_barcode
-# 		callsub turn_block
+ 		callsub turn_block
 		if width &lt;= TAPE_MAX_WIDTH then
 			callsub read_tape
 		end
   	end
+  	
+ sub reset
+ 	firstBarcodeRead = 0
+	secondBarcodeRead = 0
+	thirdBarcodeRead = 0
   
  sub stop
  	timer.period[1] = 0
  	timer.period[0] = 0
  	isTuring = TURN_START
  	callsub turn_direction
-  	isTuring = TURN_START
   	
   	
 sub read_tape
@@ -203,12 +210,15 @@ sub turn_block
  	if isTuring == TURN_START or motor.left.target &lt; 0 or motor.right.target &lt; 0 then
  		return
  	end
-	 if timer.period[0] > 0 then
+	if timer.period[0] > 0 then
 	 	return
-	 end
- 	if prox.horizontal[1] >= THRESHOLD - 300 then
+	end
+	if state == STRAIGHT then
+		return
+	end
+ 	if prox.horizontal[1] >= THRESHOLD - 100 then
  		barcodeRead[0] = 1
- 	elseif  prox.horizontal[1] &lt; THRESHOLD  - 300 then
+ 	elseif  prox.horizontal[1] &lt; THRESHOLD  - 100 then
  		barcodeRead[0] = 0
  	end
  	if prox.horizontal[2] >= THRESHOLD then
@@ -216,9 +226,9 @@ sub turn_block
  	elseif  prox.horizontal[2] &lt; THRESHOLD  then
  		barcodeRead[1] = 0
  	end
- 	if prox.horizontal[3] >= THRESHOLD  - 300 then
+ 	if prox.horizontal[3] >= THRESHOLD  - 100 then
  		barcodeRead[2] = 1
- 	elseif  prox.horizontal[3] &lt; THRESHOLD  - 300 then
+ 	elseif  prox.horizontal[3] &lt; THRESHOLD  - 100 then
  		barcodeRead[2] = 0
  	end
  	# if barcode is invalid, return
@@ -230,18 +240,20 @@ sub turn_block
  	if (firstBarcodeRead == 0) then
  		firstBarcode = barcodeRead
  		firstBarcodeRead = 1
- 		turnCount = 0
  		callsub determine_first_group_turn
+ 		isTuring = TURN_START
  		callsub stop
  	elseif firstBarcodeRead == 1 and secondBarcodeRead == 0 then
  		secondBarcode = barcodeRead
  		nextTurn = firstGroupDirection[1]
  		secondBarcodeRead = 1
+ 		isTuring = TURN_START
  		callsub stop
  	elseif firstBarcodeRead == 1 and secondBarcodeRead ==1 and thirdBarcodeRead == 0 then
  		thirdBarcode = barcodeRead
  		nextTurn = firstGroupDirection[2]
  		thirdBarcodeRead = 1
+ 		isTuring = TURN_START
  		callsub stop
  	end
  	call leds.circle(barcodeRead[1] * 32,barcodeRead[2] * 32,0,0,0,0,0, barcodeRead[0] * 32)
@@ -273,7 +285,9 @@ sub turn_block
  sub determine_second_group_turn
  
  sub turn_direction
+ 	
  	if isTuring == TURN_START then
+ 		isFollowLine = 0
 		 if  nextTurn == TURN_DIRECTION_LEFT then
 		 	motor.left.target = -TURN_TARGET             
 		  	motor.right.target = TURN_TARGET
@@ -282,20 +296,31 @@ sub turn_block
 		 	motor.left.target = TURN_TARGET             
 		  	motor.right.target = -TURN_TARGET
 		 end
+		 callsub determine_turn_timer
 		 isTuring = TURN_END
-		 timer.period[0] = TIMER_TURN
+		 
 	 elseif 	isTuring == TURN_END then
 	 
 	 	motor.left.target = MAX_TARGET        
 		motor.right.target = 0
 		tapeCount = 0
 		
-		
+		state = STRAIGHT
 		timer.period[0] = 0
 		timer.period[1] = TIMER_FORWARD
+		isFollowLine = 1
 	end
-	isFollowLine = 1
- 
+	
+ sub determine_turn_timer
+	 if firstBarcodeRead == 1 and secondBarcodeRead == 0 then
+	 	timer.period[0] = TIMER_TURN
+	 elseif secondBarcodeRead == 1 and thirdBarcodeRead == 0 then
+	 	timer.period[0] = TIMER_TURN_SECOND
+	 elseif  thirdBarcodeRead == 0 then
+	 	timer.period[0] = TIMER_TURN_THIRD
+	 else
+	  	timer.period[0] = TIMER_TURN
+	 end
  
  onevent timer0
 	callsub turn_direction
@@ -304,6 +329,7 @@ sub turn_block
  	tempTarget = motor.left.target
  	motor.left.target = motor.right.target             
 	motor.right.target = tempTarget
+	timer.period[1] = TIMER_FORWARD
 	timer.period[0] = 0
  	
  	
