@@ -1,0 +1,449 @@
+<!DOCTYPE aesl-source>
+<network>
+
+
+<!--list of global events-->
+
+
+<!--list of constants-->
+<constant value="0" name="STOPPED"/>
+<constant value="1" name="TAPE_RIGHT"/>
+<constant value="2" name="TAPE_LEFT"/>
+<constant value="3" name="STRAIGHT"/>
+<constant value="4" name="BACKWARD"/>
+<constant value="300" name="TARGET"/>
+<constant value="300" name="EDGE"/>
+<constant value="200" name="TAPE_TARGET"/>
+<constant value="300" name="BACKWARD_TIMER"/>
+<constant value="-150" name="BACKWARD_TARGET"/>
+<constant value="0" name="TURN_DIRECTION_LEFT"/>
+<constant value="1" name="TURN_DIRECTION_RIGHT"/>
+<constant value="1" name="TURN_START"/>
+<constant value="0" name="TURN_END"/>
+<constant value="500" name="TIMER1"/>
+<constant value="500" name="TURN_TARGET"/>
+<constant value="1500" name="THRESHOLD"/>
+<constant value="5" name="SEARCH"/>
+<constant value="300" name="BLACK_TH"/>
+<constant value="2" name="BLACK"/>
+<constant value="1000" name="GRAY_TH"/>
+<constant value="3" name="GRAY"/>
+<constant value="3" name="TAPE_MAX_WIDTH"/>
+<constant value="280" name="MAX_TARGET"/>
+<constant value="750" name="TIMER_FORWARD"/>
+<constant value="550" name="TIMER_TURN"/>
+<constant value="540" name="TIMER_TURN_SECOND"/>
+<constant value="420" name="TIMER_TURN_THIRD"/>
+<constant value="200" name="TIMER_TURN_FOURTH"/>
+<constant value="500" name="TIMER_TURN_FIFTH"/>
+<constant value="3800" name="THRESHOLD_BEFORE_TAPE"/>
+
+
+<!--show keywords state-->
+<keywords flag="true"/>
+
+
+<!--node thymio-II-->
+<node nodeId="1" name="thymio-II">var state
+var max                             # max over all sensor readings
+var mean                            # average over all sensor readings
+var min
+var turnCount
+var nextTurn
+var isTuring
+var firstBarcode[3] = [-1,-1,-1]
+var secondBarcode[3] = [-1,-1,-1]
+var thirdBarcode[3] = [-1,-1,-1]
+var barcodeRead[3] = [-1,-1,-1]
+# once detect tape, increament about every 0.1s, when this value is larger than 4, stop changing the speed
+var tapeCount = 0							
+var firstGroupDirection[4] = [-1, -1, -1, -1]
+
+var firstBarcodeRead = 0
+var secondBarcodeRead = 0
+var thirdBarcodeRead = 0
+var fourthRead = 0
+
+var width = 0    	 
+var tapeReading
+
+var lastTape = 0
+
+var isFollowLine = 0
+
+var tempTarget = 0
+
+var backwardCount = 0
+
+var tapCount = 0
+
+var grayCOunt = 0
+
+onevent button.forward              # if forward button is pressed  
+  state = STRAIGHT                  # transition to FORWARD state
+  motor.left.target = MAX_TARGET - 100        # start moving forward
+  motor.right.target = MAX_TARGET
+  timer.period[1] = TIMER_FORWARD / 2
+  isFollowLine = 1
+	
+onevent button.backward             # if backward button is pressed
+  state = STOPPED                   # transition to STOPPED state
+  motor.left.target = 0             # stop motors
+  motor.right.target = 0
+  callsub reset
+  
+  onevent button.left
+  callsub read_barcode
+  
+ onevent button.center
+ 	callsub read_barcode
+  
+  
+ onevent prox                        # check proximity sensors
+  	if state != STOPPED then          # only if we are not STOPPED
+  		call math.stat( prox.horizontal[0:4], min, max, mean )
+  		callsub follow_line
+ 		callsub read_barcode
+ 		callsub turn_block
+		if width &lt;= TAPE_MAX_WIDTH then
+			callsub read_tape
+		end
+  	end
+  	
+#  onevent tap
+#  	callsub turn_block
+  	
+ sub reset
+ 	firstBarcodeRead = 0
+	secondBarcodeRead = 0
+	thirdBarcodeRead = 0
+  	fourthRead = 0
+	firstBarcode = [-1,-1,-1]
+	secondBarcode = [-1,-1,-1]
+	thirdBarcode = [-1, -1, -1]
+	barcodeRead = [-1,-1,-1]
+
+	tapeCount = 0							
+	firstGroupDirection = [-1, -1, -1, -1]
+	motor.left.target = 0
+	motor.left.target = 0
+ sub stop
+ 	timer.period[1] = 0
+ 	timer.period[0] = 0
+ 	isTuring = TURN_START
+ 	callsub turn_direction
+  	
+  	
+sub read_tape
+	if lastTape == 1 then
+		return
+	end
+	tapeReading = (prox.ground.delta[0] + prox.ground.delta[1]) / 2
+    
+    when tapeReading &lt;= BLACK_TH do 
+      state = BLACK 
+    end
+    
+    when tapeReading &lt;= GRAY_TH and tapeReading > BLACK_TH do 
+      state = GRAY 
+    end
+    
+    if state==BLACK then
+      if tapeReading &lt;= BLACK_TH then
+        width++
+      else
+        callsub tape_stop
+      end
+    elseif  state == GRAY then
+    end
+    callsub tape_stop
+    
+    
+ sub tape_stop
+	 if width >= TAPE_MAX_WIDTH then
+	 	if secondBarcode[0] == 0 and secondBarcode[1] == 0 and secondBarcode[2] == 1 then # right
+	 		motor.left.target = TARGET
+	 		motor.right.target = 0
+	 		isTuring = TURN_END
+	 		lastTape = 1
+	 		isFollowLine = 1
+	 		timer.period[0] = TIMER_TURN - 200
+	 		
+	 	elseif secondBarcode[0] == 1 and secondBarcode[1] == 0 and secondBarcode[2] == 0 then # left
+	 		motor.left.target = 0
+	 		motor.right.target = TARGET
+	 		isTuring = TURN_END
+	 		lastTape = 1
+	 		isFollowLine = 1
+	 		timer.period[0] = TIMER_TURN - 100
+	 		
+	 		
+	 	end
+	 	if width==0 then call leds.circle(0,0,0,0,0,0,0,0) end
+  		if width==1 then call leds.circle(32,0,0,0,0,0,0,0) end
+	  if width==2 then call leds.circle(32,32,0,0,0,0,0,0) end
+	  if width==3 then call leds.circle(32,32,32,0,0,0,0,0) end
+	  if width==4 then call leds.circle(32,32,32,32,0,0,0,0) end
+	  if width==5 then call leds.circle(32,32,32,32,32,0,0,0) end
+	  if width==6 then call leds.circle(32,32,32,32,32,32,0,0) end
+	  if width==7 then call leds.circle(32,32,32,32,32,32,32,0) end
+	  if width==8 then call leds.circle(32,32,32,32,32,32,32,32) end
+	 	
+	 end
+ 
+ 
+ sub follow_line
+ # compute min, max, and mean over the current sensor readings 
+ 	if isFollowLine == 0 then
+ 		return
+ 	end
+ 	if isTuring == TURN_START then
+ 		return
+ 	end
+
+ 	if timer.period[0] > 0 then
+ 		return
+ 		tapeCount = 0
+ 	end
+ 	if lastTape == 1 then
+ 		motor.left.target = TAPE_TARGET             
+      motor.right.target = TAPE_TARGET
+      state = STRAIGHT
+ 		return
+ 	end
+ 	if motor.left.target &lt; 0 or motor.right.target &lt; 0 then
+ 		
+ 	end
+   
+
+   if (prox.ground.delta[0] &lt; EDGE) then
+    	state = TAPE_RIGHT
+   end
+    
+   if state == TAPE_LEFT and  (prox.ground.delta[0] >= EDGE) then
+      state = TAPE_RIGHT                          #  transition to RIGHT state
+      motor.left.target = TAPE_TARGET             #  move right
+      motor.right.target = TAPE_TARGET / 2
+      timer.period[1] = 0
+      
+   end
+    
+    # if moving right and sensing black line
+   if state == TAPE_RIGHT and (prox.ground.delta[0] &lt; EDGE) then
+      state = TAPE_LEFT                           #  transition to LEFT state
+      motor.left.target = TAPE_TARGET / 2               #  move left
+      motor.right.target = TAPE_TARGET
+      timer.period[1] = 0
+    end
+  
+   
+sub turn_block
+
+#	if tapCount >= 4 then
+#		return
+#	end
+#if width >= TAPE_MAX_WIDTH then
+#	return
+#end
+	if firstBarcodeRead == 1 and secondBarcodeRead == 1 and thirdBarcodeRead == 1 and fourthRead == 1 and state == STRAIGHT then # wall after the third barcode
+		if (mean  > THRESHOLD or prox.horizontal[4] > THRESHOLD) and firstGroupDirection[3] == 0 then
+			nextTurn = firstGroupDirection[3]
+			lastTape = 1
+			fourthRead = 1
+			callsub stop 
+		elseif( mean > THRESHOLD or prox.horizontal[4] > THRESHOLD) and firstGroupDirection[3] == 1 then 
+			nextTurn = firstGroupDirection[3]
+			lastTape = 1
+			fourthRead = 1
+			callsub stop 
+		end
+		tapCount++
+	end
+ 
+ sub read_barcode
+ 	if isTuring == TURN_START or motor.left.target &lt; 0 or motor.right.target &lt; 0 then
+ 		return
+ 	end
+	if timer.period[0] > 0 then
+	 	return
+	end
+	if state == STRAIGHT or state == BACKWARD then
+		return
+	end
+ 	if prox.horizontal[1] >= THRESHOLD - 200 then
+ 		barcodeRead[0] = 1
+ 	elseif  prox.horizontal[1] &lt; THRESHOLD  - 200 then
+ 		barcodeRead[0] = 0
+ 	end
+ 	if prox.horizontal[2] >= THRESHOLD then
+ 		barcodeRead[1] = 1
+ 	elseif  prox.horizontal[2] &lt; THRESHOLD  then
+ 		barcodeRead[1] = 0
+ 	end
+ 	if prox.horizontal[3] >= THRESHOLD  - 200 then
+ 		barcodeRead[2] = 1
+ 	elseif  prox.horizontal[3] &lt; THRESHOLD  - 200 then
+ 		barcodeRead[2] = 0
+ 	end
+ 	# if barcode is invalid, return
+ 	if not((barcodeRead[0] == 0 and barcodeRead[1] == 0 and barcodeRead[2] == 1)
+ 	or (barcodeRead[0] == 1 and barcodeRead[1] == 0 and barcodeRead[2] == 0) 
+ 	or (barcodeRead[0] == 0 and barcodeRead[1] == 1 and barcodeRead[2] == 0))then
+ 		return
+ 	end
+ 	if (firstBarcodeRead == 0) then
+ 	if not (barcodeRead[0] == 0 and barcodeRead[1] == 1 and barcodeRead[2] == 0) then
+	 	firstBarcode = barcodeRead
+	 		firstBarcodeRead = 1
+	 		callsub determine_first_group_turn
+	 		isTuring = TURN_START
+	 		callsub stop
+	 	end
+ 		
+ 	elseif firstBarcodeRead == 1 and secondBarcodeRead == 0 then
+	 	if (barcodeRead[0] == 0 and barcodeRead[1] == 0 and barcodeRead[2] == 1) 
+	 	or (barcodeRead[0] == 1 and barcodeRead[1] == 0 and barcodeRead[2] == 0)then
+	 		secondBarcode = barcodeRead
+	 		nextTurn = firstGroupDirection[1]
+	 		secondBarcodeRead = 1
+	 		isTuring = TURN_START
+	 		callsub stop
+	 	else 
+	 		secondBarcode = [0, 0, 1]
+	 		nextTurn = firstGroupDirection[1]
+	 		secondBarcodeRead = 1
+	 		isTuring = TURN_START
+	 		callsub stop
+	 	end
+ 		
+ 	elseif firstBarcodeRead == 1 and secondBarcodeRead ==1 and thirdBarcodeRead == 0 then
+ 	
+ 		thirdBarcode = barcodeRead
+ 		nextTurn = firstGroupDirection[2]
+ 		thirdBarcodeRead = 1
+ 		isTuring = TURN_START
+ 		callsub stop
+ 	end
+ 	call leds.circle(barcodeRead[1] * 32,barcodeRead[2] * 32,0,0,0,0,0, barcodeRead[0] * 32)
+ 	if barcodeRead[0] == 0 and barcodeRead[1] == 0 and barcodeRead[2] == 1 then
+ 		call leds.top(32, 0, 0)
+ 	elseif barcodeRead[0] == 0 and barcodeRead[1] == 0 and barcodeRead[2] == 1 then
+ 		call leds.top(0, 32, 0)
+ 	elseif  barcodeRead[0] == 0 and barcodeRead[1] == 0 and barcodeRead[2] == 1 then
+ 		call leds.top(0, 0, 32)
+ 	end
+ 
+ 	
+ 
+ 	
+ 	callsub determine_next_turn
+ 	barcodeRead = [-1, -1, -1]
+ 	
+ sub backward
+ 	state = BACKWARD
+ 	motor.right.speed = -MAX_TARGET
+ 	motor.left.target = 0
+ 	backwardCount = 0
+ 	timer.period[1] = TIMER_FORWARD / 2
+ 	
+ 	
+ sub determine_next_turn
+
+	if firstBarcodeRead == 1 and secondBarcodeRead == 1 and thirdBarcodeRead == 0 then
+		nextTurn = firstGroupDirection[1]
+	elseif secondBarcodeRead == 1 and thirdBarcodeRead == 1 then
+		nextTurn = firstGroupDirection[2]
+	end
+ 	
+ sub determine_first_group_turn
+ 	if firstBarcode[0] == 1 and firstBarcode[1] == 0 and firstBarcode[2] == 0 then
+ 		nextTurn = TURN_DIRECTION_LEFT
+ 		firstGroupDirection = [0, 1, 1, 0]
+ 	elseif firstBarcode[0] == 0 and firstBarcode[1] == 0 and firstBarcode[2] == 1 then
+ 		nextTurn = TURN_DIRECTION_RIGHT
+ 		firstGroupDirection = [1, 0, 0, 1]
+ 	end
+ 	
+ sub determine_second_group_turn
+ 
+ sub turn_direction
+ 	
+ 	if isTuring == TURN_START then
+ 		isFollowLine = 0
+		 if  nextTurn == TURN_DIRECTION_LEFT then
+		 	motor.left.target = -TURN_TARGET             
+		  	motor.right.target = TURN_TARGET
+		 end
+		 if nextTurn == TURN_DIRECTION_RIGHT then
+		 	motor.left.target = TURN_TARGET             
+		  	motor.right.target = -TURN_TARGET
+		 end
+		 isTuring = TURN_END
+		 callsub determine_turn_timer
+		 
+		 
+	 elseif 	isTuring == TURN_END then
+	 	callsub forward
+	 	
+	end
+	
+sub forward
+	motor.left.target = MAX_TARGET  
+	if firstBarcodeRead == 1 and secondBarcodeRead == 1 and thirdBarcodeRead == 1 and fourthRead == 1 then
+	motor.right.target = MAX_TARGET
+	else
+	motor.right.target = 0
+	end  
+	
+	tapeCount = 0
+		
+	state = STRAIGHT
+	timer.period[0] = 0
+	
+	timer.period[1] = TIMER_FORWARD / 2
+	
+	
+	isFollowLine = 1
+	if firstBarcodeRead == 1 and secondBarcodeRead == 1 and thirdBarcodeRead == 1 and fourthRead == 0 then
+		fourthRead = 1
+	end
+	
+ sub determine_turn_timer
+	 if firstBarcodeRead == 1 and secondBarcodeRead == 0 then
+	 	timer.period[0] = TIMER_TURN
+	 elseif secondBarcodeRead == 1 and thirdBarcodeRead == 0 then
+	 	timer.period[0] = TIMER_TURN_SECOND
+	 elseif  thirdBarcodeRead == 1 and fourthRead == 0 then
+	 	timer.period[0] = TIMER_TURN_THIRD
+	 elseif  fourthRead == 1 then
+	  	timer.period[0] = TIMER_TURN_FOURTH
+	 end
+ 
+ onevent timer0
+	callsub turn_direction
+	
+ onevent timer1
+		if firstGroupDirection[0] == 0 then
+			tempTarget = motor.left.target
+			motor.left.target = motor.right.target             
+			motor.right.target = tempTarget
+		else
+			tempTarget = motor.right.target
+			motor.right.target = motor.left.target             
+			motor.left.target = tempTarget
+			
+		end
+	 	tempTarget = motor.left.target
+	 	
+		timer.period[1] = TIMER_FORWARD
+		timer.period[0] = 0
+	 
+	 
+	 	
+ 	
+ 	
+  	
+  </node>
+
+
+</network>
