@@ -34,8 +34,9 @@
 <constant value="550" name="TIMER_TURN"/>
 <constant value="540" name="TIMER_TURN_SECOND"/>
 <constant value="420" name="TIMER_TURN_THIRD"/>
-<constant value="500" name="TIMER_TURN_FOURTH"/>
+<constant value="200" name="TIMER_TURN_FOURTH"/>
 <constant value="500" name="TIMER_TURN_FIFTH"/>
+<constant value="3800" name="THRESHOLD_BEFORE_TAPE"/>
 
 
 <!--show keywords state-->
@@ -50,16 +51,16 @@ var min
 var turnCount
 var nextTurn
 var isTuring
-var firstBarcode[3] = [-1,-1,-1]
-var secondBarcode[3] = [-1,-1,-1]
+var firstBarcode[3] = [1,0,0]
+var secondBarcode[3] = [0,0,1]
 var thirdBarcode[3] = [-1, -1, -1]
 var barcodeRead[3] = [-1,-1,-1]
 # once detect tape, increament about every 0.1s, when this value is larger than 4, stop changing the speed
 var tapeCount = 0							
-var firstGroupDirection[4] = [-1, -1, -1, -1]
+var firstGroupDirection[4] = [0, 1, 1, 0]
 
-var firstBarcodeRead = 0
-var secondBarcodeRead = 0
+var firstBarcodeRead = 1
+var secondBarcodeRead = 1
 var thirdBarcodeRead = 0
 var fourthRead = 0
 
@@ -76,7 +77,7 @@ var backwardCount = 0
 
 onevent button.forward              # if forward button is pressed  
   state = STRAIGHT                  # transition to FORWARD state
-  motor.left.target = 0        # start moving forward
+  motor.left.target = MAX_TARGET - 100        # start moving forward
   motor.right.target = MAX_TARGET
   timer.period[1] = TIMER_FORWARD / 2
   isFollowLine = 1
@@ -160,6 +161,15 @@ sub read_tape
 	 		
 	 		
 	 	end
+	 	if width==0 then call leds.circle(0,0,0,0,0,0,0,0) end
+  		if width==1 then call leds.circle(32,0,0,0,0,0,0,0) end
+	  if width==2 then call leds.circle(32,32,0,0,0,0,0,0) end
+	  if width==3 then call leds.circle(32,32,32,0,0,0,0,0) end
+	  if width==4 then call leds.circle(32,32,32,32,0,0,0,0) end
+	  if width==5 then call leds.circle(32,32,32,32,32,0,0,0) end
+	  if width==6 then call leds.circle(32,32,32,32,32,32,0,0) end
+	  if width==7 then call leds.circle(32,32,32,32,32,32,32,0) end
+	  if width==8 then call leds.circle(32,32,32,32,32,32,32,32) end
 	 	
 	 end
  
@@ -212,7 +222,7 @@ sub read_tape
   
    
 sub turn_block
-	if firstBarcodeRead == 1 and secondBarcodeRead == 1 and thirdBarcodeRead == 1 and fourthRead == 1 and mean &lt; THRESHOLD and state == STRAIGHT then # wall after the third barcode
+	if firstBarcodeRead == 1 and secondBarcodeRead == 1 and thirdBarcodeRead == 1 and fourthRead == 1 and max > THRESHOLD_BEFORE_TAPE and state == STRAIGHT then # wall after the third barcode
 		nextTurn = firstGroupDirection[3]
 		lastTape = 1
 		fourthRead = 1
