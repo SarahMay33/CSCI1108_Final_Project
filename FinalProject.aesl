@@ -12,7 +12,7 @@
 <constant value="3" name="STRAIGHT"/>
 <constant value="4" name="BACKWARD"/>
 <constant value="300" name="TARGET"/>
-<constant value="400" name="EDGE"/>
+<constant value="300" name="EDGE"/>
 <constant value="200" name="TAPE_TARGET"/>
 <constant value="300" name="BACKWARD_TIMER"/>
 <constant value="-150" name="BACKWARD_TARGET"/>
@@ -23,7 +23,6 @@
 <constant value="500" name="TIMER1"/>
 <constant value="500" name="TURN_TARGET"/>
 <constant value="2500" name="THRESHOLD"/>
-<constant value="500" name="TIMER_TURN"/>
 <constant value="5" name="SEARCH"/>
 <constant value="300" name="BLACK_TH"/>
 <constant value="2" name="BLACK"/>
@@ -31,8 +30,9 @@
 <constant value="3" name="GRAY"/>
 <constant value="7" name="TAPE_MAX_WIDTH"/>
 <constant value="280" name="MAX_TARGET"/>
-<constant value="950" name="TIMER_FORWARD"/>
-<constant value="550" name="TIMER_TURN_SECOND"/>
+<constant value="750" name="TIMER_FORWARD"/>
+<constant value="550" name="TIMER_TURN"/>
+<constant value="540" name="TIMER_TURN_SECOND"/>
 <constant value="420" name="TIMER_TURN_THIRD"/>
 <constant value="500" name="TIMER_TURN_FOURTH"/>
 <constant value="500" name="TIMER_TURN_FIFTH"/>
@@ -76,7 +76,7 @@ var backwardCount = 0
 
 onevent button.forward              # if forward button is pressed  
   state = STRAIGHT                  # transition to FORWARD state
-  motor.left.target = MAX_TARGET - 100        # start moving forward
+  motor.left.target = 0        # start moving forward
   motor.right.target = MAX_TARGET
   timer.period[1] = TIMER_FORWARD / 2
   isFollowLine = 1
@@ -98,7 +98,7 @@ onevent button.backward             # if backward button is pressed
   	if state != STOPPED then          # only if we are not STOPPED
   		callsub follow_line
  		callsub read_barcode
-# 		callsub turn_block
+ 		callsub turn_block
 		if width &lt;= TAPE_MAX_WIDTH then
 			callsub read_tape
 		end
@@ -148,7 +148,7 @@ sub read_tape
 	 		isTuring = TURN_END
 	 		lastTape = 1
 	 		isFollowLine = 1
-	 		timer.period[0] = TIMER_TURN - 100
+	 		timer.period[0] = TIMER_TURN - 200
 	 		
 	 	elseif secondBarcode[0] == 1 and secondBarcode[1] == 0 and secondBarcode[2] == 0 then # left
 	 		motor.left.target = 0
@@ -372,10 +372,18 @@ sub forward
 	callsub turn_direction
 	
  onevent timer1
-	
-	 	tempTarget = motor.left.target
-	 	motor.left.target = motor.right.target             
-		motor.right.target = tempTarget
+		if firstGroupDirection[0] == 0 then
+			tempTarget = motor.left.target + 40
+			motor.left.target = motor.right.target             
+			motor.right.target = tempTarget
+		else
+			tempTarget = motor.right.target + 40
+			motor.right.target = motor.left.target             
+			motor.left.target = tempTarget
+			
+		end
+	 	tempTarget = motor.left.target + 40
+	 	
 		timer.period[1] = TIMER_FORWARD
 		timer.period[0] = 0
 	 
