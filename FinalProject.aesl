@@ -97,6 +97,7 @@ onevent button.backward             # if backward button is pressed
   
  onevent prox                        # check proximity sensors
   	if state != STOPPED then          # only if we are not STOPPED
+  		call math.stat( prox.horizontal[0:4], min, max, mean )
   		callsub follow_line
  		callsub read_barcode
  		callsub turn_block
@@ -104,6 +105,9 @@ onevent button.backward             # if backward button is pressed
 			callsub read_tape
 		end
   	end
+  	
+#  onevent tap
+#  	callsub turn_block
   	
  sub reset
  	firstBarcodeRead = 0
@@ -117,6 +121,8 @@ onevent button.backward             # if backward button is pressed
 
 	tapeCount = 0							
 	firstGroupDirection = [-1, -1, -1, -1]
+	motor.left.target = 0
+	motor.left.target = 0
  sub stop
  	timer.period[1] = 0
  	timer.period[0] = 0
@@ -205,7 +211,7 @@ sub read_tape
  	if motor.left.target &lt; 0 or motor.right.target &lt; 0 then
  		
  	end
-   call math.stat( prox.horizontal[0:4], min, max, mean )
+   
 
    if (prox.ground.delta[0] &lt; EDGE) then
     	state = TAPE_RIGHT
@@ -229,14 +235,22 @@ sub read_tape
   
    
 sub turn_block
-	if timer.period[1] > 0 then
-		return
-	end
-	if firstBarcodeRead == 1 and secondBarcodeRead == 1 and thirdBarcodeRead == 1 and fourthRead == 1 and max > THRESHOLD_BEFORE_TAPE and state == STRAIGHT then # wall after the third barcode
-		nextTurn = firstGroupDirection[3]
-		lastTape = 1
-		fourthRead = 1
-		callsub stop 
+#	if timer.period[1] > 0 then
+#		return
+#	end
+	if firstBarcodeRead == 1 and secondBarcodeRead == 1 and thirdBarcodeRead == 1 and fourthRead == 1 and state == STRAIGHT then # wall after the third barcode
+		if prox.horizontal[4] > THRESHOLD_BEFORE_TAPE and firstGroupDirection[3] == 0 then
+			nextTurn = firstGroupDirection[3]
+			lastTape = 1
+			fourthRead = 1
+			callsub stop 
+		elseif prox.horizontal[0] > THRESHOLD_BEFORE_TAPE and firstGroupDirection[3] == 1 then 
+			nextTurn = firstGroupDirection[3]
+			lastTape = 1
+			fourthRead = 1
+			callsub stop 
+		end
+		
 	end
  
  sub read_barcode
@@ -265,11 +279,11 @@ sub turn_block
  		barcodeRead[2] = 0
  	end
  	# if barcode is invalid, return
-# 	if not((barcodeRead[0] == 0 and barcodeRead[1] == 0 and barcodeRead[2] == 1)
-# 	or (barcodeRead[0] == 1 and barcodeRead[1] == 0 and barcodeRead[2] == 0) 
-# 	or (barcodeRead[0] == 0 and barcodeRead[1] == 1 and barcodeRead[2] == 0))then
-# 		return
-# 	end
+ 	if not((barcodeRead[0] == 0 and barcodeRead[1] == 0 and barcodeRead[2] == 1)
+ 	or (barcodeRead[0] == 1 and barcodeRead[1] == 0 and barcodeRead[2] == 0) 
+ 	or (barcodeRead[0] == 0 and barcodeRead[1] == 1 and barcodeRead[2] == 0))then
+ 		return
+ 	end
  	if (firstBarcodeRead == 0) then
  	if not (barcodeRead[0] == 0 and barcodeRead[1] == 1 and barcodeRead[2] == 0) then
 	 	firstBarcode = barcodeRead
@@ -304,6 +318,13 @@ sub turn_block
  		callsub stop
  	end
  	call leds.circle(barcodeRead[1] * 32,barcodeRead[2] * 32,0,0,0,0,0, barcodeRead[0] * 32)
+ 	if barcodeRead[0] == 0 and barcodeRead[1] == 0 and barcodeRead[2] == 1 then
+ 		call leds.top(32, 0, 0)
+ 	elseif barcodeRead[0] == 0 and barcodeRead[1] == 0 and barcodeRead[2] == 1 then
+ 		call leds.top(0, 32, 0)
+ 	elseif  barcodeRead[0] == 0 and barcodeRead[1] == 0 and barcodeRead[2] == 1 then
+ 		call leds.top(0, 0, 32)
+ 	end
  
  	
  
