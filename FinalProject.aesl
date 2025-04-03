@@ -51,16 +51,16 @@ var min
 var turnCount
 var nextTurn
 var isTuring
-var firstBarcode[3] = [1,0,0]
-var secondBarcode[3] = [0,0,1]
+var firstBarcode[3] = [-1,-1,-1]
+var secondBarcode[3] = [-1,-1,-1]
 var thirdBarcode[3] = [-1, -1, -1]
 var barcodeRead[3] = [-1,-1,-1]
 # once detect tape, increament about every 0.1s, when this value is larger than 4, stop changing the speed
 var tapeCount = 0							
-var firstGroupDirection[4] = [0, 1, 1, 0]
+var firstGroupDirection[4] = [-1, -1, -1, -1]
 
-var firstBarcodeRead = 1
-var secondBarcodeRead = 1
+var firstBarcodeRead = 0
+var secondBarcodeRead = 0
 var thirdBarcodeRead = 0
 var fourthRead = 0
 
@@ -109,7 +109,14 @@ onevent button.backward             # if backward button is pressed
  	firstBarcodeRead = 0
 	secondBarcodeRead = 0
 	thirdBarcodeRead = 0
-  
+  	fourthRead = 0
+	firstBarcode = [-1,-1,-1]
+	secondBarcode = [-1,-1,-1]
+	thirdBarcode = [-1, -1, -1]
+	barcodeRead = [-1,-1,-1]
+
+	tapeCount = 0							
+	firstGroupDirection = [-1, -1, -1, -1]
  sub stop
  	timer.period[1] = 0
  	timer.period[0] = 0
@@ -222,6 +229,9 @@ sub read_tape
   
    
 sub turn_block
+	if timer.period[1] > 0 then
+		return
+	end
 	if firstBarcodeRead == 1 and secondBarcodeRead == 1 and thirdBarcodeRead == 1 and fourthRead == 1 and max > THRESHOLD_BEFORE_TAPE and state == STRAIGHT then # wall after the third barcode
 		nextTurn = firstGroupDirection[3]
 		lastTape = 1
@@ -255,11 +265,11 @@ sub turn_block
  		barcodeRead[2] = 0
  	end
  	# if barcode is invalid, return
- 	if not((barcodeRead[0] == 0 and barcodeRead[1] == 0 and barcodeRead[2] == 1)
- 	or (barcodeRead[0] == 1 and barcodeRead[1] == 0 and barcodeRead[2] == 0) 
- 	or (barcodeRead[0] == 0 and barcodeRead[1] == 1 and barcodeRead[2] == 0))then
- 		return
- 	end
+# 	if not((barcodeRead[0] == 0 and barcodeRead[1] == 0 and barcodeRead[2] == 1)
+# 	or (barcodeRead[0] == 1 and barcodeRead[1] == 0 and barcodeRead[2] == 0) 
+# 	or (barcodeRead[0] == 0 and barcodeRead[1] == 1 and barcodeRead[2] == 0))then
+# 		return
+# 	end
  	if (firstBarcodeRead == 0) then
  	if not (barcodeRead[0] == 0 and barcodeRead[1] == 1 and barcodeRead[2] == 0) then
 	 	firstBarcode = barcodeRead
