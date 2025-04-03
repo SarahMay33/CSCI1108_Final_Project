@@ -248,12 +248,12 @@ sub turn_block
 	if firstBarcodeRead == 1 and secondBarcodeRead == 1 and thirdBarcodeRead == 1 and fourthRead == 1 and state == STRAIGHT then # wall after the third barcode
 		if (mean  > THRESHOLD or prox.horizontal[4] > THRESHOLD) and firstGroupDirection[3] == 0 then
 			nextTurn = firstGroupDirection[3]
-			lastTape = 1
+			lastTape = 0
 			fourthRead = 1
 			callsub stop 
 		elseif( mean > THRESHOLD or prox.horizontal[4] > THRESHOLD) and firstGroupDirection[3] == 1 then 
 			nextTurn = firstGroupDirection[3]
-			lastTape = 1
+			lastTape = 0
 			fourthRead = 1
 			callsub stop 
 		end
