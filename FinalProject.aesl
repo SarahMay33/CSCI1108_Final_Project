@@ -31,8 +31,8 @@
 <constant value="7" name="TAPE_MAX_WIDTH"/>
 <constant value="280" name="MAX_TARGET"/>
 <constant value="750" name="TIMER_FORWARD"/>
-<constant value="550" name="TIMER_TURN"/>
-<constant value="540" name="TIMER_TURN_SECOND"/>
+<constant value="380" name="TIMER_TURN"/>
+<constant value="380" name="TIMER_TURN_SECOND"/>
 <constant value="420" name="TIMER_TURN_THIRD"/>
 <constant value="200" name="TIMER_TURN_FOURTH"/>
 <constant value="500" name="TIMER_TURN_FIFTH"/>
@@ -414,16 +414,16 @@ sub forward
 	
  onevent timer1
 		if firstGroupDirection[0] == 0 then
-			tempTarget = motor.left.target + 40
+			tempTarget = motor.left.target
 			motor.left.target = motor.right.target             
 			motor.right.target = tempTarget
 		else
-			tempTarget = motor.right.target + 40
+			tempTarget = motor.right.target
 			motor.right.target = motor.left.target             
 			motor.left.target = tempTarget
 			
 		end
-	 	tempTarget = motor.left.target + 40
+	 	
 	 	
 		timer.period[1] = TIMER_FORWARD
 		timer.period[0] = 0
