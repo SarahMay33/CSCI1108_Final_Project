@@ -30,10 +30,10 @@
 <constant value="3" name="GRAY"/>
 <constant value="7" name="TAPE_MAX_WIDTH"/>
 <constant value="280" name="MAX_TARGET"/>
-<constant value="750" name="TIMER_FORWARD"/>
+<constant value="500" name="TIMER_FORWARD"/>
 <constant value="380" name="TIMER_TURN"/>
-<constant value="378" name="TIMER_TURN_SECOND"/>
-<constant value="305" name="TIMER_TURN_THIRD"/>
+<constant value="392" name="TIMER_TURN_SECOND"/>
+<constant value="300" name="TIMER_TURN_THIRD"/>
 <constant value="300" name="TIMER_TURN_FOURTH"/>
 <constant value="500" name="TIMER_TURN_FIFTH"/>
 <constant value="3800" name="THRESHOLD_BEFORE_TAPE"/>
@@ -218,7 +218,7 @@ sub read_tape
    if state == TAPE_LEFT and  (prox.ground.delta[0] >= EDGE) then
       state = TAPE_RIGHT                          #  transition to RIGHT state
       motor.left.target = TAPE_TARGET             #  move right
-      motor.right.target = TAPE_TARGET / 2
+      motor.right.target = TAPE_TARGET / 4
       timer.period[1] = 0
       
    end
@@ -226,7 +226,7 @@ sub read_tape
     # if moving right and sensing black line
    if state == TAPE_RIGHT and (prox.ground.delta[0] &lt; EDGE) then
       state = TAPE_LEFT                           #  transition to LEFT state
-      motor.left.target = TAPE_TARGET / 2               #  move left
+      motor.left.target = TAPE_TARGET / 4               #  move left
       motor.right.target = TAPE_TARGET
       timer.period[1] = 0
     end
