@@ -37,7 +37,7 @@
 <constant value="300" name="TIMER_TURN_FOURTH"/>
 <constant value="500" name="TIMER_TURN_FIFTH"/>
 <constant value="3800" name="THRESHOLD_BEFORE_TAPE"/>
-<constant value="480" name="TAPE_WIDTH_TARGET"/>
+<constant value="320" name="TAPE_WIDTH_TARGET"/>
 
 
 <!--show keywords state-->
@@ -163,7 +163,7 @@ sub read_tape
 	 		isTuring = TURN_END
 	 		lastTape = 1
 	 		isFollowLine = 1
-	 		timer.period[0] = TIMER_TURN - 200
+	 		timer.period[0] = TIMER_TURN_FIFTH 
 	 		
 	 	elseif secondBarcode[0] == 1 and secondBarcode[1] == 0 and secondBarcode[2] == 0 then # left
 	 		motor.left.target = 0
@@ -184,7 +184,7 @@ sub read_tape
 	  if width==6 then call leds.circle(32,32,32,32,32,32,0,0) end
 	  if width==7 then call leds.circle(32,32,32,32,32,32,32,0) end
 	  if width==8 then call leds.circle(32,32,32,32,32,32,32,32) end
-	 	
+	 	state = STRAIGHT
 	 end
  
  
