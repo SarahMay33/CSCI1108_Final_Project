@@ -372,9 +372,12 @@ sub turn_block
 	end
 	
 sub forward
-	if thirdBarcodeRead == 1 then
+	if thirdBarcodeRead == 1 and fourthRead == 0 then
 		motor.left.target = MAX_TARGET / 2     
 		motor.right.target = MAX_TARGET / 2
+	elseif  fourthRead == 1 then
+		motor.left.target = 500    
+		motor.right.target = 500
 	else
 		motor.left.target = MAX_TARGET - 150    
 		motor.right.target = MAX_TARGET
