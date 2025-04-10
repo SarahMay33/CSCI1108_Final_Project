@@ -28,7 +28,7 @@
 <constant value="7" name="BLACK"/>
 <constant value="1000" name="GRAY_TH"/>
 <constant value="8" name="GRAY"/>
-<constant value="7" name="TAPE_MAX_WIDTH"/>
+<constant value="4" name="TAPE_MAX_WIDTH"/>
 <constant value="280" name="MAX_TARGET"/>
 <constant value="550" name="TIMER_FORWARD"/>
 <constant value="370" name="TIMER_TURN"/>
@@ -107,9 +107,7 @@ onevent button.backward             # if backward button is pressed
 			callsub read_tape
 		end
   	end
-  	
-#  onevent tap
-#  	callsub turn_block
+
   	
  sub reset
  	firstBarcodeRead = 0
@@ -203,7 +201,7 @@ sub read_tape
  		return
  		tapeCount = 0
  	end
- 	if lastTape == 1 and fourthRead == 1 then
+ 	if lastTape == 1 and fourthRead == 1 and width &lt; TAPE_MAX_WIDTH then
  		motor.left.target = TAPE_WIDTH_TARGET             
       motor.right.target = TAPE_WIDTH_TARGET
       state = STRAIGHT
@@ -395,9 +393,7 @@ sub forward
 	
 	
 	isFollowLine = 1
-#	if firstBarcodeRead == 1 and secondBarcodeRead == 1 and thirdBarcodeRead == 1 and fourthRead == 0 then
-#		fourthRead = 1
-#	end
+
 	
  sub determine_turn_timer
 	 if firstBarcodeRead == 1 and secondBarcodeRead == 0 then
