@@ -12,7 +12,7 @@
 <constant value="3" name="STRAIGHT"/>
 <constant value="4" name="CROSS_TAPE"/>
 <constant value="300" name="TARGET"/>
-<constant value="300" name="EDGE"/>
+<constant value="320" name="EDGE"/>
 <constant value="200" name="TAPE_TARGET"/>
 <constant value="300" name="BACKWARD_TIMER"/>
 <constant value="-150" name="BACKWARD_TARGET"/>
@@ -24,7 +24,7 @@
 <constant value="500" name="TURN_TARGET"/>
 <constant value="2500" name="THRESHOLD"/>
 <constant value="5" name="SEARCH"/>
-<constant value="420" name="BLACK_TH"/>
+<constant value="450" name="BLACK_TH"/>
 <constant value="7" name="BLACK"/>
 <constant value="1000" name="GRAY_TH"/>
 <constant value="8" name="GRAY"/>
@@ -33,11 +33,11 @@
 <constant value="550" name="TIMER_FORWARD"/>
 <constant value="370" name="TIMER_TURN"/>
 <constant value="397" name="TIMER_TURN_SECOND"/>
-<constant value="300" name="TIMER_TURN_THIRD"/>
+<constant value="302" name="TIMER_TURN_THIRD"/>
 <constant value="300" name="TIMER_TURN_FOURTH"/>
 <constant value="500" name="TIMER_TURN_FIFTH"/>
 <constant value="3800" name="THRESHOLD_BEFORE_TAPE"/>
-<constant value="500" name="TAPE_WIDTH_TARGET"/>
+<constant value="480" name="TAPE_WIDTH_TARGET"/>
 
 
 <!--show keywords state-->
@@ -134,7 +134,7 @@ onevent button.backward             # if backward button is pressed
   	
 sub read_tape
 
-	if lastTape == 1 and fourthRead == 0 then
+	if fourthRead == 0 then
 		return
 	end
 	tapeReading = (prox.ground.delta[0] + prox.ground.delta[1]) / 2
@@ -209,9 +209,7 @@ sub read_tape
       state = STRAIGHT
  		return
  	end
- 	if motor.left.target &lt; 0 or motor.right.target &lt; 0 then
- 		
- 	end
+
    
 
    if (prox.ground.delta[0] &lt; EDGE) then
