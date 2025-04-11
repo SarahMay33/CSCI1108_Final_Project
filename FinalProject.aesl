@@ -12,7 +12,7 @@
 <constant value="3" name="STRAIGHT"/>
 <constant value="4" name="CROSS_TAPE"/>
 <constant value="300" name="TARGET"/>
-<constant value="320" name="EDGE"/>
+<constant value="500" name="EDGE"/>
 <constant value="200" name="TAPE_TARGET"/>
 <constant value="300" name="BACKWARD_TIMER"/>
 <constant value="-150" name="BACKWARD_TARGET"/>
@@ -31,13 +31,13 @@
 <constant value="4" name="TAPE_MAX_WIDTH"/>
 <constant value="280" name="MAX_TARGET"/>
 <constant value="550" name="TIMER_FORWARD"/>
-<constant value="370" name="TIMER_TURN"/>
-<constant value="390" name="TIMER_TURN_SECOND"/>
+<constant value="371" name="TIMER_TURN"/>
+<constant value="388" name="TIMER_TURN_SECOND"/>
 <constant value="302" name="TIMER_TURN_THIRD"/>
 <constant value="300" name="TIMER_TURN_FOURTH"/>
-<constant value="1480" name="TIMER_TURN_FIFTH"/>
+<constant value="1380" name="TIMER_TURN_FIFTH"/>
 <constant value="3800" name="THRESHOLD_BEFORE_TAPE"/>
-<constant value="320" name="TAPE_WIDTH_TARGET"/>
+<constant value="250" name="TAPE_WIDTH_TARGET"/>
 
 
 <!--show keywords state-->
@@ -216,7 +216,7 @@ sub read_tape
     
    if state == TAPE_LEFT and  (prox.ground.delta[0] >= EDGE) then
       state = TAPE_RIGHT                          #  transition to RIGHT state
-      motor.left.target = TAPE_TARGET / 2            #  move right
+      motor.left.target = TAPE_TARGET / 3            #  move right
       motor.right.target = 0
       timer.period[1] = 0
       
@@ -226,7 +226,7 @@ sub read_tape
    if state == TAPE_RIGHT and (prox.ground.delta[0] &lt; EDGE) then
       state = TAPE_LEFT                           #  transition to LEFT state
       motor.left.target = 0              #  move left
-      motor.right.target = TAPE_TARGET / 2
+      motor.right.target = TAPE_TARGET / 3
       timer.period[1] = 0
     end
   
