@@ -35,7 +35,7 @@
 <constant value="388" name="TIMER_TURN_SECOND"/>
 <constant value="302" name="TIMER_TURN_THIRD"/>
 <constant value="300" name="TIMER_TURN_FOURTH"/>
-<constant value="1380" name="TIMER_TURN_FIFTH"/>
+<constant value="1800" name="TIMER_TURN_FIFTH"/>
 <constant value="3800" name="THRESHOLD_BEFORE_TAPE"/>
 <constant value="250" name="TAPE_WIDTH_TARGET"/>
 
