@@ -30,8 +30,8 @@
 <constant value="8" name="GRAY"/>
 <constant value="4" name="TAPE_MAX_WIDTH"/>
 <constant value="280" name="MAX_TARGET"/>
-<constant value="550" name="TIMER_FORWARD"/>
-<constant value="370" name="TIMER_TURN"/>
+<constant value="350" name="TIMER_FORWARD"/>
+<constant value="371" name="TIMER_TURN"/>
 <constant value="392" name="TIMER_TURN_SECOND"/>
 <constant value="295" name="TIMER_TURN_THIRD"/>
 <constant value="290" name="TIMER_TURN_FOURTH"/>
@@ -87,9 +87,11 @@ var leaveWall = 0
 
 var lastMove = 0
 
+var lastCross = 0
+
 onevent button.forward              # if forward button is pressed  
   state = STRAIGHT                  # transition to FORWARD state
-  motor.left.target = MAX_TARGET - 50        # start moving forward
+  motor.left.target = MAX_TARGET - 75        # start moving forward
   motor.right.target = MAX_TARGET
   timer.period[1] = TIMER_FORWARD / 2
   isFollowLine = 1
@@ -114,6 +116,7 @@ onevent button.backward             # if backward button is pressed
 		if width &lt;= TAPE_MAX_WIDTH then
 			callsub read_tape
 		end
+		callsub stop_on_cross
   	end
 
   	
@@ -143,8 +146,13 @@ onevent button.backward             # if backward button is pressed
  		motor.left.target = MAX_TARGET     # start moving forward
   		motor.right.target = MAX_TARGET + 200
 		lastMove = 1
+		timer.period[1] = 500
  	end
-  	
+ 	
+ sub stop_on_cross
+  	if lastCross == 1 and prox.ground.delta[0] &lt; EDGE then
+  		callsub reset
+  	end
   	
 sub read_tape
 
@@ -464,7 +472,13 @@ sub forward
 	
 	
  onevent timer1
- 	if width >= TAPE_MAX_WIDTH then
+ 	if lastMove == 1 then
+ 		motor.left.speed = 100
+ 		motor.right.target = 100
+ 		lastCross = 1
+ 		timer.period[1] = 0
+ 		
+ 	elseif width >= TAPE_MAX_WIDTH then
  		timer.period[1] = 0
 		timer.period[0] = 0
 		callsub follow_line
