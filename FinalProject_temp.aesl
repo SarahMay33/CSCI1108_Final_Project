@@ -144,14 +144,16 @@ onevent button.backward             # if backward button is pressed
  sub last_turn
  	if lastMove == 0 then
  		motor.left.target = MAX_TARGET + 5   # start moving forward
-  		motor.right.target = MAX_TARGET + 200
+  		motor.right.target = MAX_TARGET + 220
 		lastMove = 1
 		timer.period[1] = 1500
  	end
  	
  sub stop_on_cross
   	if lastCross == 1 and prox.ground.delta[0] &lt; EDGE then
-  		callsub reset
+  		state = STOPPED                   # transition to STOPPED state
+  		motor.left.target = 0             # stop motors
+  		motor.right.target = 0
   	end
   	
 sub read_tape
@@ -181,7 +183,7 @@ sub read_tape
  sub tape_stop
 	 if width >= TAPE_MAX_WIDTH then
 	 	if secondBarcode[0] == 0 and secondBarcode[1] == 0 and secondBarcode[2] == 1 then # right
-	 		motor.left.target = TARGET / 10
+	 		motor.left.target = TARGET / 12
 	 		motor.right.target = 0
 	 		isTuring = TURN_END
 	 		lastTape = 1
@@ -190,7 +192,7 @@ sub read_tape
 	 		
 	 	elseif secondBarcode[0] == 1 and secondBarcode[1] == 0 and secondBarcode[2] == 0 then # left
 	 		motor.left.target = 0
-	 		motor.right.target = TARGET / 10
+	 		motor.right.target = TARGET / 12
 	 		isTuring = TURN_END
 	 		lastTape = 1
 	 		isFollowLine = 1
