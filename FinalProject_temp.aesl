@@ -32,12 +32,12 @@
 <constant value="280" name="MAX_TARGET"/>
 <constant value="300" name="TIMER_FORWARD"/>
 <constant value="371" name="TIMER_TURN"/>
-<constant value="392" name="TIMER_TURN_SECOND"/>
+<constant value="390" name="TIMER_TURN_SECOND"/>
 <constant value="295" name="TIMER_TURN_THIRD"/>
 <constant value="290" name="TIMER_TURN_FOURTH"/>
-<constant value="100" name="TIMER_TURN_FIFTH"/>
+<constant value="500" name="TIMER_TURN_FIFTH"/>
 <constant value="3800" name="THRESHOLD_BEFORE_TAPE"/>
-<constant value="500" name="TAPE_WIDTH_TARGET"/>
+<constant value="300" name="TAPE_WIDTH_TARGET"/>
 <constant value="600" name="WALL_THRESHOLD"/>
 
 
@@ -91,8 +91,8 @@ var lastCross = 0
 
 onevent button.forward              # if forward button is pressed  
   state = STRAIGHT                  # transition to FORWARD state
-  motor.left.target = MAX_TARGET - 120        # start moving forward
-  motor.right.target = MAX_TARGET
+  motor.left.target = MAX_TARGET - 180        # start moving forward
+  motor.right.target = MAX_TARGET + 120
   timer.period[1] = TIMER_FORWARD / 2
   isFollowLine = 1
 	
@@ -143,7 +143,7 @@ onevent button.backward             # if backward button is pressed
  	
  sub last_turn
  	if lastMove == 0 then
- 		motor.left.target = MAX_TARGET - 50    # start moving forward
+ 		motor.left.target = MAX_TARGET -18   # start moving forward
   		motor.right.target = MAX_TARGET + 200
 		lastMove = 1
 		timer.period[1] = 1500
@@ -181,7 +181,7 @@ sub read_tape
  sub tape_stop
 	 if width >= TAPE_MAX_WIDTH then
 	 	if secondBarcode[0] == 0 and secondBarcode[1] == 0 and secondBarcode[2] == 1 then # right
-	 		motor.left.target = TARGET / 7
+	 		motor.left.target = TARGET / 10
 	 		motor.right.target = 0
 	 		isTuring = TURN_END
 	 		lastTape = 1
@@ -190,7 +190,7 @@ sub read_tape
 	 		
 	 	elseif secondBarcode[0] == 1 and secondBarcode[1] == 0 and secondBarcode[2] == 0 then # left
 	 		motor.left.target = 0
-	 		motor.right.target = TARGET / 7
+	 		motor.right.target = TARGET / 10
 	 		isTuring = TURN_END
 	 		lastTape = 1
 	 		isFollowLine = 1
@@ -221,7 +221,9 @@ sub read_tape
     if lastMove == 1 then
     	return
     end
-   
+   if lastCross == 1 then
+   	return
+   end
 
  # compute min, max, and mean over the current sensor readings 
  	if isFollowLine == 0 then
@@ -432,11 +434,11 @@ sub forward
 		motor.left.target = TAPE_WIDTH_TARGET    
 		motor.right.target = TAPE_WIDTH_TARGET
 	elseif nextTurn == 0 then
-		motor.left.target = MAX_TARGET    
-		motor.right.target = MAX_TARGET - 50
+		motor.left.target = MAX_TARGET + 120   
+		motor.right.target = MAX_TARGET - 180
 	elseif nextTurn == 1 then
-		motor.left.target = MAX_TARGET - 50    
-		motor.right.target = MAX_TARGET
+		motor.left.target = MAX_TARGET - 180        
+ 		motor.right.target = MAX_TARGET + 120
 	end
 	tapeCount = 0
 		
