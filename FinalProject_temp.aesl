@@ -34,6 +34,7 @@
 <constant value="500" name="TIMER_FORWARD"/>
 <constant value="450" name="TIMER_TURN_SECOND"/>
 <constant value="500" name="TIMER_TURN_THIRD"/>
+<constant value="1000" name="WALL_THRESHOLD"/>
 
 
 <!--show keywords state-->
@@ -71,6 +72,10 @@ var tempTarget = 0
 
 var backwardCount = 0
 
+var wallCount = 0
+
+var isWall = 0
+
 onevent button.forward              # if forward button is pressed  
   state = STRAIGHT                  # transition to FORWARD state
   motor.left.target = 0        # start moving forward
@@ -99,6 +104,7 @@ onevent button.backward             # if backward button is pressed
 		if width &lt;= TAPE_MAX_WIDTH then
 			callsub read_tape
 		end
+		callsub last_turn
   	end
   	
  sub reset
@@ -111,6 +117,12 @@ onevent button.backward             # if backward button is pressed
  	timer.period[0] = 0
  	isTuring = TURN_START
  	callsub turn_direction
+ 	
+ sub last_turn
+ 	if (prox.horizontal[0] &lt; WALL_THRESHOLD or prox.horizontal[4] &lt; THRESHOLD) and isWall == 1 then
+ 		motor.left.target = MAX_TARGET / 2       # start moving forward
+  		motor.right.target = MAX_TARGET
+ 	end
   	
   	
 sub read_tape
@@ -162,6 +174,9 @@ sub read_tape
  
  
  sub follow_line
+ 	if  isWall == 1 then
+ 		return
+ 	end
  # compute min, max, and mean over the current sensor readings 
  	if isFollowLine == 0 then
  		return
@@ -205,6 +220,14 @@ sub read_tape
       motor.left.target = TAPE_TARGET / 2               #  move left
       motor.right.target = TAPE_TARGET
       timer.period[1] = 0
+    end
+    
+    if width > TAPE_MAX_WIDTH and prox.horizontal[0] > WALL_THRESHOLD and prox.horizontal[4] > WALL_THRESHOLD then
+    	
+    	wallCount++
+    	if wallCount > 10 then
+    		isWall = 1
+    	end
     end
   
    
