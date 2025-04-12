@@ -11,7 +11,7 @@
 <constant value="2" name="TAPE_LEFT"/>
 <constant value="3" name="STRAIGHT"/>
 <constant value="4" name="CROSS_TAPE"/>
-<constant value="300" name="TARGET"/>
+<constant value="400" name="TARGET"/>
 <constant value="500" name="EDGE"/>
 <constant value="200" name="TAPE_TARGET"/>
 <constant value="300" name="BACKWARD_TIMER"/>
@@ -35,9 +35,10 @@
 <constant value="388" name="TIMER_TURN_SECOND"/>
 <constant value="302" name="TIMER_TURN_THIRD"/>
 <constant value="300" name="TIMER_TURN_FOURTH"/>
-<constant value="1800" name="TIMER_TURN_FIFTH"/>
+<constant value="800" name="TIMER_TURN_FIFTH"/>
 <constant value="3800" name="THRESHOLD_BEFORE_TAPE"/>
 <constant value="250" name="TAPE_WIDTH_TARGET"/>
+<constant value="1000" name="WALL_THRESHOLD"/>
 
 
 <!--show keywords state-->
@@ -76,6 +77,14 @@ var isFollowLine = 0
 var tempTarget = 0
 
 var backwardCount = 0
+
+var wallCount = 0
+
+var isWall = 0
+
+var leaveWall = 0
+
+var lastMove = 0
 
 onevent button.forward              # if forward button is pressed  
   state = STRAIGHT                  # transition to FORWARD state
@@ -123,11 +132,19 @@ onevent button.backward             # if backward button is pressed
 	firstGroupDirection = [-1, -1, -1, -1]
 	motor.left.target = 0
 	motor.left.target = 0
+	
  sub stop
  	timer.period[1] = 0
  	timer.period[0] = 0
  	isTuring = TURN_START
  	callsub turn_direction
+ 	
+ sub last_turn
+ 	if lastMove == 0 then
+ 		motor.left.target = MAX_TARGET - 80      # start moving forward
+  		motor.right.target = MAX_TARGET + 100
+		lastMove = 1
+ 	end
   	
   	
 sub read_tape
@@ -189,6 +206,14 @@ sub read_tape
  
  
  sub follow_line
+ if isWall == 1 and (prox.horizontal[4] &lt; WALL_THRESHOLD) then
+    	
+    	leaveWall = 1
+    	callsub last_turn
+    	return
+    end
+   
+
  # compute min, max, and mean over the current sensor readings 
  	if isFollowLine == 0 then
  		return
@@ -229,7 +254,13 @@ sub read_tape
       motor.right.target = TAPE_TARGET / 3
       timer.period[1] = 0
     end
-  
+   if width > TAPE_MAX_WIDTH and (prox.horizontal[0] > WALL_THRESHOLD and prox.horizontal[4] > WALL_THRESHOLD) then
+    	
+    	wallCount++
+    	if wallCount > 10 then
+    		isWall = 1
+    	end
+    end
    
 sub turn_block
 
@@ -351,7 +382,7 @@ sub turn_block
  
  sub turn_direction
  	
- 	if isTuring == TURN_START then
+ 	if isTuring == TURN_START and width &lt; TAPE_MAX_WIDTH then
  		isFollowLine = 0
 		 if  nextTurn == TURN_DIRECTION_LEFT then
 		 	motor.left.target = -TURN_TARGET             
@@ -365,9 +396,23 @@ sub turn_block
 		 callsub determine_turn_timer
 		 
 		 
-	 elseif 	isTuring == TURN_END then
+	elseif isTuring == TURN_END and width &lt; TAPE_MAX_WIDTH then
 	 	callsub forward
 	 	
+	elseif isTuring == TURN_START then
+		isFollowLine = 0
+		if  nextTurn == TURN_DIRECTION_LEFT then
+			motor.left.target = 0            
+			motor.right.target = TURN_TARGET
+		end
+		if nextTurn == TURN_DIRECTION_RIGHT then
+			motor.left.target = TURN_TARGET             
+			motor.right.target = 0
+		end
+			isTuring = TURN_END
+			callsub determine_turn_timer
+	elseif isTuring == TURN_END then
+		callsub forward
 	end
 	
 sub forward
