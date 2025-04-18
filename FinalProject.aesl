@@ -13,7 +13,7 @@
 <constant value="4" name="CROSS_TAPE"/>
 <constant value="400" name="TARGET"/>
 <constant value="500" name="EDGE"/>
-<constant value="200" name="TAPE_TARGET"/>
+<constant value="300" name="TAPE_TARGET"/>
 <constant value="300" name="BACKWARD_TIMER"/>
 <constant value="-150" name="BACKWARD_TARGET"/>
 <constant value="0" name="TURN_DIRECTION_LEFT"/>
@@ -24,21 +24,21 @@
 <constant value="500" name="TURN_TARGET"/>
 <constant value="2500" name="THRESHOLD"/>
 <constant value="5" name="SEARCH"/>
-<constant value="450" name="BLACK_TH"/>
+<constant value="300" name="BLACK_TH"/>
 <constant value="7" name="BLACK"/>
-<constant value="1000" name="GRAY_TH"/>
+<constant value="800" name="GRAY_TH"/>
 <constant value="8" name="GRAY"/>
-<constant value="4" name="TAPE_MAX_WIDTH"/>
+<constant value="5" name="TAPE_MAX_WIDTH"/>
 <constant value="280" name="MAX_TARGET"/>
-<constant value="550" name="TIMER_FORWARD"/>
+<constant value="220" name="TIMER_FORWARD"/>
 <constant value="371" name="TIMER_TURN"/>
-<constant value="388" name="TIMER_TURN_SECOND"/>
-<constant value="302" name="TIMER_TURN_THIRD"/>
-<constant value="300" name="TIMER_TURN_FOURTH"/>
-<constant value="800" name="TIMER_TURN_FIFTH"/>
+<constant value="389" name="TIMER_TURN_SECOND"/>
+<constant value="295" name="TIMER_TURN_THIRD"/>
+<constant value="290" name="TIMER_TURN_FOURTH"/>
+<constant value="500" name="TIMER_TURN_FIFTH"/>
 <constant value="3800" name="THRESHOLD_BEFORE_TAPE"/>
-<constant value="250" name="TAPE_WIDTH_TARGET"/>
-<constant value="1000" name="WALL_THRESHOLD"/>
+<constant value="300" name="TAPE_WIDTH_TARGET"/>
+<constant value="600" name="WALL_THRESHOLD"/>
 
 
 <!--show keywords state-->
@@ -47,6 +47,7 @@
 
 <!--node thymio-II-->
 <node nodeId="1" name="thymio-II">var state
+var previousState = GRAY
 var max                             # max over all sensor readings
 var mean                            # average over all sensor readings
 var min
@@ -86,10 +87,12 @@ var leaveWall = 0
 
 var lastMove = 0
 
+var lastCross = 0
+
 onevent button.forward              # if forward button is pressed  
   state = STRAIGHT                  # transition to FORWARD state
-  motor.left.target = MAX_TARGET - 50        # start moving forward
-  motor.right.target = MAX_TARGET
+  motor.left.target = MAX_TARGET - 180        # start moving forward
+  motor.right.target = MAX_TARGET + 20
   timer.period[1] = TIMER_FORWARD / 2
   isFollowLine = 1
 	
@@ -98,9 +101,7 @@ onevent button.backward             # if backward button is pressed
   motor.left.target = 0             # stop motors
   motor.right.target = 0
   callsub reset
-  
-  onevent button.left
-  callsub read_barcode
+
   
  onevent button.center
  	callsub read_barcode
@@ -115,6 +116,7 @@ onevent button.backward             # if backward button is pressed
 		if width &lt;= TAPE_MAX_WIDTH then
 			callsub read_tape
 		end
+		callsub stop_on_cross
   	end
 
   	
@@ -141,11 +143,18 @@ onevent button.backward             # if backward button is pressed
  	
  sub last_turn
  	if lastMove == 0 then
- 		motor.left.target = MAX_TARGET - 80      # start moving forward
-  		motor.right.target = MAX_TARGET + 100
+ 		motor.left.target = MAX_TARGET + 5   # start moving forward
+  		motor.right.target = MAX_TARGET + 220
 		lastMove = 1
+		timer.period[1] = 1500
  	end
-  	
+ 	
+ sub stop_on_cross
+  	if lastCross == 1 and prox.ground.delta[0] &lt; EDGE then
+  		state = STOPPED                   # transition to STOPPED state
+  		motor.left.target = 0             # stop motors
+  		motor.right.target = 0
+  	end
   	
 sub read_tape
 
@@ -154,53 +163,52 @@ sub read_tape
 	end
 	tapeReading = (prox.ground.delta[0] + prox.ground.delta[1]) / 2
     
-    when tapeReading &lt;= BLACK_TH do 
-      state = BLACK 
-    end
+   when tapeReading &lt;= BLACK_TH do 
+     state = BLACK 
+   end   
     
-    when tapeReading &lt;= GRAY_TH and tapeReading > BLACK_TH do 
-      state = GRAY 
-    end
+   when tapeReading &lt;= GRAY_TH and tapeReading > BLACK_TH do 
+     state = GRAY
+     
+   end
     
-    if state==BLACK then
-      if tapeReading &lt;= BLACK_TH then
+   if state == BLACK then
+     if tapeReading &lt;= BLACK_TH then
         width++
-      else
-        callsub tape_stop
-      end
-    end
-    callsub tape_stop
+     end
+	end
+   callsub tape_stop
     
     
  sub tape_stop
 	 if width >= TAPE_MAX_WIDTH then
 	 	if secondBarcode[0] == 0 and secondBarcode[1] == 0 and secondBarcode[2] == 1 then # right
-	 		motor.left.target = TARGET
+	 		motor.left.target = TARGET / 12
 	 		motor.right.target = 0
 	 		isTuring = TURN_END
 	 		lastTape = 1
 	 		isFollowLine = 1
-	 		timer.period[0] = TIMER_TURN_FIFTH 
+	 		timer.period[1] = TIMER_TURN_FIFTH 
 	 		
 	 	elseif secondBarcode[0] == 1 and secondBarcode[1] == 0 and secondBarcode[2] == 0 then # left
 	 		motor.left.target = 0
-	 		motor.right.target = TARGET
+	 		motor.right.target = TARGET / 12
 	 		isTuring = TURN_END
 	 		lastTape = 1
 	 		isFollowLine = 1
-	 		timer.period[0] = TIMER_TURN_FIFTH 
+	 		timer.period[1] = TIMER_TURN_FIFTH 
 	 		
 	 		
 	 	end
 	 	if width==0 then call leds.circle(0,0,0,0,0,0,0,0) end
   		if width==1 then call leds.circle(32,0,0,0,0,0,0,0) end
-	  if width==2 then call leds.circle(32,32,0,0,0,0,0,0) end
-	  if width==3 then call leds.circle(32,32,32,0,0,0,0,0) end
-	  if width==4 then call leds.circle(32,32,32,32,0,0,0,0) end
-	  if width==5 then call leds.circle(32,32,32,32,32,0,0,0) end
-	  if width==6 then call leds.circle(32,32,32,32,32,32,0,0) end
-	  if width==7 then call leds.circle(32,32,32,32,32,32,32,0) end
-	  if width==8 then call leds.circle(32,32,32,32,32,32,32,32) end
+	  	if width==2 then call leds.circle(32,32,0,0,0,0,0,0) end
+	  	if width==3 then call leds.circle(32,32,32,0,0,0,0,0) end
+	  	if width==4 then call leds.circle(32,32,32,32,0,0,0,0) end
+	  	if width==5 then call leds.circle(32,32,32,32,32,0,0,0) end
+	  	if width==6 then call leds.circle(32,32,32,32,32,32,0,0) end
+	  	if width==7 then call leds.circle(32,32,32,32,32,32,32,0) end
+	  	if width==8 then call leds.circle(32,32,32,32,32,32,32,32) end
 	 	state = STRAIGHT
 	 end
  
@@ -212,7 +220,12 @@ sub read_tape
     	callsub last_turn
     	return
     end
-   
+    if lastMove == 1 then
+    	return
+    end
+   if lastCross == 1 then
+   	return
+   end
 
  # compute min, max, and mean over the current sensor readings 
  	if isFollowLine == 0 then
@@ -222,7 +235,7 @@ sub read_tape
  		return
  	end
  	
- 	if timer.period[0] > 0 then
+ 	if timer.period[0] > 0 and fourthRead == 0 then
  		return
  		tapeCount = 0
  	end
@@ -409,10 +422,10 @@ sub turn_block
 			motor.left.target = TURN_TARGET             
 			motor.right.target = 0
 		end
-			isTuring = TURN_END
-			callsub determine_turn_timer
-	elseif isTuring == TURN_END then
-		callsub forward
+		isTuring = TURN_END
+		callsub determine_turn_timer
+	else 
+		callsub follow_line
 	end
 	
 sub forward
@@ -423,11 +436,11 @@ sub forward
 		motor.left.target = TAPE_WIDTH_TARGET    
 		motor.right.target = TAPE_WIDTH_TARGET
 	elseif nextTurn == 0 then
-		motor.left.target = MAX_TARGET    
-		motor.right.target = MAX_TARGET - 50
+		motor.left.target = MAX_TARGET + 20   
+		motor.right.target = MAX_TARGET - 180
 	elseif nextTurn == 1 then
-		motor.left.target = MAX_TARGET - 50    
-		motor.right.target = MAX_TARGET
+		motor.left.target = MAX_TARGET - 180        
+ 		motor.right.target = MAX_TARGET + 20
 	end
 	tapeCount = 0
 		
@@ -447,15 +460,34 @@ sub forward
 	 	timer.period[0] = TIMER_TURN_SECOND
 	 elseif  thirdBarcodeRead == 1 and fourthRead == 0 then
 	 	timer.period[0] = TIMER_TURN_THIRD
-	 elseif  fourthRead == 1 then
+	 elseif  fourthRead == 1 and width &lt; TAPE_MAX_WIDTH then
 	  	timer.period[0] = TIMER_TURN_FOURTH
+	 else
+	 	timer.period[0] = TIMER_TURN_FIFTH
 	 end
  
  onevent timer0
-	callsub turn_direction
+	 if width >= TAPE_MAX_WIDTH  then
+	 	timer.period[0] = 0
+	 	callsub follow_line
+	 else 
+	 	callsub turn_direction
+	 end
+	
 	
  onevent timer1
-		if firstGroupDirection[0] == 0 then
+ 	if lastMove == 1 then
+ 		motor.left.speed = 100
+ 		motor.right.target = 100
+ 		lastCross = 1
+ 		timer.period[1] = 0
+ 		
+ 	elseif width >= TAPE_MAX_WIDTH then
+ 		timer.period[1] = 0
+		timer.period[0] = 0
+		callsub follow_line
+ 	else
+	 	if firstGroupDirection[0] == 0 then
 			tempTarget = motor.left.target
 			motor.left.target = motor.right.target             
 			motor.right.target = tempTarget
@@ -463,12 +495,14 @@ sub forward
 			tempTarget = motor.right.target
 			motor.right.target = motor.left.target             
 			motor.left.target = tempTarget
-			
+				
 		end
-	 	
-	 	
+		 	
+		 	
 		timer.period[1] = TIMER_FORWARD
 		timer.period[0] = 0
+ 	end
+	
 	 
 	 
 	 	
