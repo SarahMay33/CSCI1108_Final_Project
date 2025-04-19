@@ -28,11 +28,11 @@
 <constant value="7" name="BLACK"/>
 <constant value="800" name="GRAY_TH"/>
 <constant value="8" name="GRAY"/>
-<constant value="4" name="TAPE_MAX_WIDTH"/>
+<constant value="5" name="TAPE_MAX_WIDTH"/>
 <constant value="280" name="MAX_TARGET"/>
 <constant value="220" name="TIMER_FORWARD"/>
 <constant value="371" name="TIMER_TURN"/>
-<constant value="390" name="TIMER_TURN_SECOND"/>
+<constant value="389" name="TIMER_TURN_SECOND"/>
 <constant value="295" name="TIMER_TURN_THIRD"/>
 <constant value="290" name="TIMER_TURN_FOURTH"/>
 <constant value="500" name="TIMER_TURN_FIFTH"/>
@@ -183,7 +183,7 @@ sub read_tape
  sub tape_stop
 	 if width >= TAPE_MAX_WIDTH then
 	 	if secondBarcode[0] == 0 and secondBarcode[1] == 0 and secondBarcode[2] == 1 then # right
-	 		motor.left.target = TARGET / 12
+	 		motor.left.target = TARGET / 14
 	 		motor.right.target = 0
 	 		isTuring = TURN_END
 	 		lastTape = 1
@@ -192,7 +192,7 @@ sub read_tape
 	 		
 	 	elseif secondBarcode[0] == 1 and secondBarcode[1] == 0 and secondBarcode[2] == 0 then # left
 	 		motor.left.target = 0
-	 		motor.right.target = TARGET / 12
+	 		motor.right.target = TARGET / 14
 	 		isTuring = TURN_END
 	 		lastTape = 1
 	 		isFollowLine = 1
