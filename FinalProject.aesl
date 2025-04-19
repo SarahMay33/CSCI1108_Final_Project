@@ -28,11 +28,11 @@
 <constant value="7" name="BLACK"/>
 <constant value="800" name="GRAY_TH"/>
 <constant value="8" name="GRAY"/>
-<constant value="5" name="TAPE_MAX_WIDTH"/>
+<constant value="4" name="TAPE_MAX_WIDTH"/>
 <constant value="280" name="MAX_TARGET"/>
 <constant value="220" name="TIMER_FORWARD"/>
 <constant value="371" name="TIMER_TURN"/>
-<constant value="389" name="TIMER_TURN_SECOND"/>
+<constant value="390" name="TIMER_TURN_SECOND"/>
 <constant value="295" name="TIMER_TURN_THIRD"/>
 <constant value="290" name="TIMER_TURN_FOURTH"/>
 <constant value="500" name="TIMER_TURN_FIFTH"/>
